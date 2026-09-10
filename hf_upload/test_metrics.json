@@ -1,0 +1,33 @@
+{
+  "note": "Grouped-test Ultralytics COCO-style metrics from Colab Tesla T4. Library P/R are not identical to API operating points at 0.25/0.50.",
+  "map50_95": 0.6358471050644373,
+  "map50": 0.7550257935330602,
+  "map75": 0.6835551722161265,
+  "ultralytics_mean_precision": 0.734,
+  "ultralytics_mean_recall": 0.812,
+  "per_class_map50": {
+    "fastener_hardware": 0.821,
+    "hand_tool": 0.839,
+    "flexible_debris": 0.761,
+    "loose_metal": 0.541,
+    "plastic_paper_debris": 0.966,
+    "component_container": 0.940,
+    "natural_debris": 0.418
+  },
+  "per_class_map50_95": {
+    "fastener_hardware": 0.6369457945410563,
+    "hand_tool": 0.7079614105611822,
+    "flexible_debris": 0.6135550927330025,
+    "loose_metal": 0.4794144354343464,
+    "plastic_paper_debris": 0.9102236113532088,
+    "component_container": 0.7492598739571628,
+    "natural_debris": 0.3535695168711016
+  },
+  "fitness": 0.6358471050644373,
+  "weights_sha256": "C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269",
+  "imgsz": 480,
+  "split": "test",
+  "n_images": 4882,
+  "api_evidence_confidence": 0.25,
+  "api_answer_confidence": 0.50
+}

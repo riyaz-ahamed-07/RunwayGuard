@@ -1,0 +1,425 @@
+>
+> </details>
+>
+> I’ve extracted the full three-page brief. It requires a real RT-DETR fine-tune with at least one non-COCO class, two FastAPI endpoints, reproducible training/evaluation, model weights, and a two-page memo with five honest failure analyses. I’m checking the page render now so no tables or layout details were missed.
+>
+> <details><summary>Ran 2 commands</summary>
+>
+> - Ran `$env:PYTHONIOENCODING='utf-8'; & 'C:\Users\thahs\.cache\codex-runtimes\codex-primary-r\n\n=====\n\n, two FastAPI endpoints, reproducible training/evaluation, model weights, and a two-page memo with five honest failure analyses. I’m checking the page render now so no tables or layout details were missed.
+>
+> <details><summary>Ran 2 commands</summary>
+>
+> - Ran `$env:PYTHONIOENCODING='utf-8'; & 'C:\Users\thahs\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' -c "import fitz, pathlib; p=pathlib.Path(r'C:\Users\thahs\Downloads\Problem_Statement_Const\n\n=====\n\nt returning classes, boxes, and confidence scores.
+- A second endpoint with handwritten intent routing, structured reasoning, and an “insufficient information” guardrail.
+- Reproducible training instructions, model weights, API examples, GitHub source code, and a maximum two-page memo.
+- No LangChain, LangGraph, CrewAI, AutoGen, AutoML, or no-code training tools.
+
+The highest-impact areas are hidden-set performance (25%), dataset decisions (15%), failure analysis (15%), and r\n\n=====\n\nng instructions, model weights, API examples, GitHub source code, and a maximum two-page memo.
+- No LangChain, LangGraph, CrewAI, AutoGen, AutoML, or no-code training tools.
+
+The highest-impact areas are hidden-set performance (25%), dataset decisions (15%), failure analysis (15%), and reasoning correctness (15%). :codex-file-citation{path="C:/Users/thahs/Downloads/Problem_Statement_Constrained_Object_Detection_and_Reasoning_API (1).pdf" purpose="source"}
+
+Would you like me t\n\n=====\n\nhighest-impact areas are hidden-set performance (25%), dataset decisions (15%), failure analysis (15%), and reasoning correctness (15%). :codex-file-citation{path="C:/Users/thahs/Downloads/Problem_Statement_Constrained_Object_Detection_and_Reasoning_API (1).pdf" purpose="source"}
+
+Would you like me to build the complete submission repository and memo, or first help you select a strong domain and dataset?
+
+> i dont know each and every jargon mentioned in it..
+
+No problem—this \n\n=====\n\nse="source"}
+
+Would you like me to build the complete submission repository and memo, or first help you select a strong domain and dataset?
+
+> i dont know each and every jargon mentioned in it..
+
+No problem—this assignment is packed with ML terminology. In plain English, they want you to teach a computer to locate specific objects in photographs, make that model accessible through a small web service, and answer basic questions using the model’s results.
+
+## The entire assign\n\n=====\n\n processed together during one training step.
+
+A larger batch requires more GPU memory.
+
+### Learning rate
+
+The learning rate controls how aggressively the model changes while learning.
+
+- Too large: training can become unstable.
+- Too small: training can be extremely slow or get stuck.
+
+### Hyperparameters
+
+Hyperparameters are settings you choose before or during training, such as:
+
+```text
+epochs: 50
+batch size: 8
+image size: 640
+learning rate: 0.0001
+confidence threshold: \n\n=====\n\n where the code works on your computer but fails on the reviewer’s machine.
+
+## Part B terminology
+
+### Natural-language question
+
+This is an ordinary question written by a person, such as:
+
+```text
+How many workers are present?
+Is anyone missing a helmet?
+What is the most common detected object?
+```
+
+### Intent routing
+
+Intent routing decides what type of question was asked and whether the detector is needed.
+
+For example:
+
+```text
+"How many helmets are visible?"
+→ Call dete\n\n=====\n\nPart B terminology
+
+### Natural-language question
+
+This is an ordinary question written by a person, such as:
+
+```text
+How many workers are present?
+Is anyone missing a helmet?
+What is the most common detected object?
+```
+
+### Intent routing
+
+Intent routing decides what type of question was asked and whether the detector is needed.
+
+For example:
+
+```text
+"How many helmets are visible?"
+→ Call detector
+
+"What is the capital of India?"
+→ Do not call detector; question is unrela\n\n=====\n\nPython logic and carefully defined question patterns. You do not need a complex agent system.
+
+### Structured output
+
+Structured output is organized data returned by the detector:
+
+```json
+{
+  "class_name": "helmet",
+  "confidence": 0.91,
+  "box": [34, 20, 90, 82]
+}
+```
+
+Because the result has predictable fields, your code can count classes, compare confidence scores, and perform other operations safely.
+
+### Structured reasoning
+
+Structured reasoning means answering question\n\n=====\n\nelmet?" → "Yes, one no-helmet instance was detected."
+```
+
+It should not ask an LLM to inspect the original image and guess.
+
+### Confidence guardrail
+
+A guardrail prevents unreliable answers.
+
+For example, if a relevant detection has only 22% confidence or the model does not support the requested class, the response should say:
+
+> Insufficient information to answer confidently.
+
+This honesty is explicitly graded.
+
+### LLM
+
+An LLM is a language model such as GPT. It can help \n\n=====\n\n.
+
+They are prohibited here. RAP wants one small, understandable decision layer written directly by you.
+
+## Reproducibility
+
+Reproducibility means that another person can follow your instructions and obtain approximately the same result.
+
+You should record:
+
+- Dataset source and version.
+- Dataset preparation commands.
+- Exact split procedure.
+- Python and package versions.
+- Training command.
+- Hyperparameters.
+- Random seed.
+- Hardware used.
+- Training duration.
+- Evaluati\n\n=====\n\n of the model weights.
+
+## What you must finally submit
+
+You need four concrete deliverables:
+
+1. A GitHub repository containing training, evaluation, inference, and API code.
+2. Your trained model weights or a direct download path.
+3. A maximum two-page memo containing your decisions, metrics, five real failures, and reasoning-layer explanation.
+4. Clear API instructions with sample requests and responses.
+
+The most beginner-friendly way to approach this is to build it in st\n\n=====\n\nAPI code.
+2. Your trained model weights or a direct download path.
+3. A maximum two-page memo containing your decisions, metrics, five real failures, and reasoning-layer explanation.
+4. Clear API instructions with sample requests and responses.
+
+The most beginner-friendly way to approach this is to build it in stages:
+
+```text
+Choose problem
+→ obtain and inspect dataset
+→ prepare labels and splits
+→ train RT-DETR
+→ evaluate honestly
+→ inspect five failures
+→ build detection A\n\n=====\n\ncan show any client exactly how their work was handled, without pulling it from memory or reconstructing it from emails.
+>
+> [Talk to us about audit readiness →](/book-demo)
+>
+> ## More Volume Shouldn't Mean More People Doing the Same Work.
+>
+> Winning a new client or expanding scope shouldn't require a hiring cycle. RAPFlow scales horizontally — more work flows through the same automated pipelines, with no additional overhead per unit of work.
+>
+> Your people focus on client\n\n=====\n\nas evaluated relevant operational controls over a period—not merely inspected a written security policy once. SOC 2 does not mean “impossible to hack”; it means audited security, availability and confidentiality controls exist and operate according to the audit’s scope. [RAPFlow Security and Architecture](https://rapidautomation.ai/platform/security-architecture)
+
+## 4. Technologies and jargon on their website
+
+### LLM
+
+**Large Language Model**, such as GPT or Claude. It read\n\n=====\n\nment |
+| **2:00–2:30** | Choose a domain and inspect a dataset candidate | Your written choice and dataset source |
+| **2:30–3:15** | Inspect labels, prepare splits, test training on a tiny subset | Correctly displayed boxes; training starts successfully |
+| **3:15–5:15** | Run the main training experiment; build API code while it runs | Training logs and a saved checkpoint |
+| **5:15–6:15** | Evaluate and inspect model predictions | Real metrics and candidate failure example\n\n=====\n\n| Recorded test results and complete run commands |
+| **8:30–9:30** | Write the two-page memo and README | Five real failures and clear instructions |
+| **9:30–10:00** | Check repository, weights and upload access | Reviewer can obtain and run everything |
+| **By 10:00, or earlier if required** | Submit; reserve time for upload problems | Submission confirmation |
+
+Training duration is uncertain until you try the actual dataset, model and GPU. Treat the training slot as a bud\n\n=====\n\ne, not a guarantee.
+
+**5. Write the conclusions in your own words.**
+
+Draft the memo yourself before asking AI to edit it. It should sound like someone who ran the experiment:
+
+> “The detector missed these small objects. I observed that most training examples showed larger objects. I did not have time to test higher-resolution training, so I list it as a proposed improvement.”
+
+That is more defensible than confident claims about robustness you did not measure.
+
+**Use AI throu\n\n=====\n\ndebug this error. Explain the cause and the smallest correction.”
+
+> “Review my memo for unsupported claims. Do not invent results or rewrite it to sound more successful.”
+
+Maintain a short decision record:
+
+```text
+Decision:
+Alternatives considered:
+Why I chose it:
+Evidence:
+Limitation:
+```
+
+**If time runs short, protect the required deliverables.**
+
+Prioritize real trained weights, evaluation, both endpoints, reproducible instructions and the memo. Cut an elaborate interfac\n\n=====\n\n trained weights, evaluation, both endpoints, reproducible instructions and the memo. Cut an elaborate interface, extra classes, multiple model comparisons and optional deployment work first. Docker is useful if it is straightforward; it should not consume the time needed to document your actual training.
+
+Before submitting, verify that the weights download link works, the README includes exact commands, and both endpoints have sample requests. Be precise about anything you h\n\n=====\n\nhotos/files about a person, legal/medical/HR info, telemetry (browsing history, memory, app logs), identifiers (SSN/passport), biometrics, financials, passwords/OTP/API keys, precise location/IP/home address, etc.
+> - **Transmitting data** = any step that shares user data with a third party (messages, forms, posts, uploads, sharing docs, WebMCP).
+>   - **Typing sensitive data into a form counts as transmission.**
+>   - Visiting a URL that embeds sensitive data also counts.
+>
+\n\n=====\n\n financial or medical information, private identifiers, precise location, logs, memories, browsing/search history, or personal files, it is critical that you apply the confirmation policy. Pay special attention to the data's sensitivity and the consequences of disclosure, and check whether the user's request authorizes the transmission, including the specific data, destination, and timing.
+> - Before sending messages, submitting forms that create an external side effect, maki\n\n=====\n\n LocatorFilterOptions): PlaywrightLocator; // Narrow this locator by additional constraints.
+>   first(): PlaywrightLocator; // Return a locator pointing at the first matched element.
+>   getAttribute(name: string, options: { timeoutMs?: number }): Promise<null | string>; // Return an attribute value from the first matched element.
+>   getByLabel(text: TextMatcher, options: { exact?: boolean }): PlaywrightLocator; // Find elements by label text, scoped to this locator.
+>   ge\n\n=====\n\n Shared
+>         - gridcell
+>       - row "Select row .pdf New Bhuvaneshwari_M-MEMO.pdf Yesterday at 7:36 PM Opens profile card for Guest Contributor 8.94 KB  Shared":
+>         - gridcell "Select row":
+>           - checkbox "Select row"
+>         - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Bhuvaneshwari_M-MEMO.pdf":
+>           - img "New": 
+>           - button "Bhuvaneshwari_M-MEMO.pdf"
+>           - generic:  
+>         - gridcell "Yesterda\n\n=====\n\ncell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Bhuvaneshwari_M-MEMO.pdf":
+>           - img "New": 
+>           - button "Bhuvaneshwari_M-MEMO.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 7:36 PM"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "8.94 KB"
+>         - gridcell " Shared":
+>     \n\n=====\n\nic: Shared
+>         - gridcell
+>       - row "Select row .pdf New ENBANATHAN_V-memo.pdf Yesterday at 8:55 AM Opens profile card for Guest Contributor 186 KB  Shared":
+>         - gridcell "Select row":
+>           - checkbox "Select row"
+>         - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New ENBANATHAN_V-memo.pdf":
+>           - img "New": 
+>           - button "ENBANATHAN_V-memo.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 8:\n\n=====\n\nridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New ENBANATHAN_V-memo.pdf":
+>           - img "New": 
+>           - button "ENBANATHAN_V-memo.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 8:55 AM"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "186 KB"
+>         - gridcell " Shared":
+>         \n\n=====\n\nic: Shared
+>         - gridcell
+>       - row "Select row .pdf New Gurumurthy_s_memo_doc.pdf Yesterday at 9:49 PM Opens profile card for Guest Contributor 503 KB  Shared":
+>         - gridcell "Select row":
+>           - checkbox "Select row"
+>         - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Gurumurthy_s_memo_doc.pdf":
+>           - img "New": 
+>           - button "Gurumurthy_s_memo_doc.pdf"
+>           - generic:  
+>         - gridcell "Yes\n\n=====\n\nridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Gurumurthy_s_memo_doc.pdf":
+>           - img "New": 
+>           - button "Gurumurthy_s_memo_doc.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 9:49 PM"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "503 KB"
+>         - gridcell " Shared":
+> \n\n=====\n\n_s_memo_doc.pdf":
+>           - img "New": 
+>           - button "Gurumurthy_s_memo_doc.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 9:49 PM"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "503 KB"
+>         - gridcell " Shared":
+>           - button " Shared":
+>             - text: 
+>             - generi\n\n=====\n\ngeneric: Shared
+>         - gridcell
+>       - row "Select row .pdf New Ramya R memo.pdf Yesterday at 8:56 PM Opens profile card for Guest Contributor 120 KB  Shared":
+>         - gridcell "Select row":
+>           - checkbox "Select row"
+>         - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Ramya R memo.pdf":
+>           - img "New": 
+>           - button "Ramya R memo.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 8:56 PM"
+>  \n\n=====\n\n  - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Ramya R memo.pdf":
+>           - img "New": 
+>           - button "Ramya R memo.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 8:56 PM"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "120 KB"
+>         - gridcell " Shared":
+>           - b\n\n=====\n\nic: Shared
+>         - gridcell
+>       - row "Select row .pdf New Ranjan KUmar Memo.pdf 3 minutes ago Opens profile card for Guest Contributor 1.34 MB  Shared":
+>         - gridcell "Select row":
+>           - checkbox "Select row"
+>         - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Ranjan KUmar Memo.pdf":
+>           - img "New": 
+>           - button "Ranjan KUmar Memo.pdf"
+>           - generic:  
+>         - gridcell "3 minutes ago"
+>     \n\n=====\n\nridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Ranjan KUmar Memo.pdf":
+>           - img "New": 
+>           - button "Ranjan KUmar Memo.pdf"
+>           - generic:  
+>         - gridcell "3 minutes ago"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "1.34 MB"
+>         - gridcell " Shared":
+>           - bu\n\n=====\n\n KUmar Memo.pdf":
+>           - img "New": 
+>           - button "Ranjan KUmar Memo.pdf"
+>           - generic:  
+>         - gridcell "3 minutes ago"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "1.34 MB"
+>         - gridcell " Shared":
+>           - button " Shared":
+>             - text: 
+>             - generic: Shared
+\n\n=====\n\nred
+>         - gridcell
+>       - row "Select row .pdf New Syed Mohamed Raihan_Memo.pdf Yesterday at 11:31 PM Opens profile card for Guest Contributor 516 KB  Shared":
+>         - gridcell "Select row":
+>           - checkbox "Select row"
+>         - gridcell ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Syed Mohamed Raihan_Memo.pdf":
+>           - img "New": 
+>           - button "Syed Mohamed Raihan_Memo.pdf"
+>           - generic:  
+>         - gridcell "\n\n=====\n\n ".pdf":
+>           - img ".pdf"
+>         - gridcell "New Syed Mohamed Raihan_Memo.pdf":
+>           - img "New": 
+>           - button "Syed Mohamed Raihan_Memo.pdf"
+>           - generic:  
+>         - gridcell "Yesterday at 11:31 PM"
+>         - gridcell "Opens profile card for Guest Contributor":
+>           - button "Opens profile card for Guest Contributor":
+>             - generic: Guest Contributor
+>         - gridcell "516 KB"
+>         - gridcell " Shared":
+> \n\n=====\n\nr is accessible as a guest. I can see seven named subfolders and multiple loose memo/repository-link files, including one empty folder. I’m collecting the full contents now so the comparison is based on actual files rather than filenames alone.
+>
+> <details><summary>Called 5 tools</summary>
+>
+> MCP tool call
+>
+> cua_repl.js
+>
+> ```json
+> {
+>   "code": "const selectAll = spTab.playwright.getByRole(\"checkbox\", {name:\"Select all rows\", exact:true}); await selectAll.click(); \n\n=====\n\ncted) ID: virtualized-list_4_page-0_1221, Select row  .pdf New Bhuvaneshwari_M-MEMO.pdf More Actions Share Yesterday at 7:36 PM Opens profile card for Guest Contributor 8.94 KB  Shared
+> 							152 cell (selected)
+> 								153 checkbox (settable, integer) Description: Select row, Value: 1
+> 								524 text 
+> 							154 cell
+> 								155 image .pdf
+> 							156 cell
+> 								525 container New
+> 								157 button Bhuvaneshwari_M-MEMO.pdf
+> 								526 button More Actio

@@ -1,0 +1,47 @@
+{
+  "fastener_hardware": [
+    "AdjustableClamp",
+    "Bolt",
+    "BoltNutSet",
+    "BoltWasher",
+    "ClampPart",
+    "Nail",
+    "Nut",
+    "Screw",
+    "Washer"
+  ],
+  "hand_tool": [
+    "AdjustableWrench",
+    "Cutter",
+    "Hammer",
+    "Pliers",
+    "Screwdriver",
+    "Wrench"
+  ],
+  "flexible_debris": [
+    "Hose",
+    "Tape",
+    "Wire"
+  ],
+  "loose_metal": [
+    "MetalPart",
+    "MetalSheet"
+  ],
+  "plastic_paper_debris": [
+    "Label",
+    "LuggagePart",
+    "LuggageTag",
+    "PaintChip",
+    "PlasticPart"
+  ],
+  "component_container": [
+    "Battery",
+    "FuelCap",
+    "Pen",
+    "SodaCan"
+  ],
+  "natural_debris": [
+    "Rock",
+    "Wood"
+  ]
+}
