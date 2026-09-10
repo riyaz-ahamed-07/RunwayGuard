@@ -1,0 +1,7 @@
+.git
+.venv
+__pycache__
+runs
+prepared_data
+tests
+*.zip

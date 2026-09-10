@@ -1,0 +1,17 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.idea/
+.vscode/
+runs/
+weights/*.pt
+prepared_data/
+*.zip
+*.pt
+!weights/.gitkeep
+.DS_Store
+Thumbs.db
+environment.json
+results.csv
+*.cache
