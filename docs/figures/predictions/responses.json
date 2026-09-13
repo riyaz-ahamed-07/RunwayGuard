@@ -1,0 +1,158 @@
+{
+  "weights_sha256": "C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269",
+  "imgsz": 480,
+  "confidence": 0.25,
+  "examples": [
+    {
+      "image_id": "000700",
+      "source_sha256": "BE596408B3AAB2AEBE2F46F1A4E9282EFFD592B238028A28C7A31ED4783CC28C",
+      "figure": "docs/figures/predictions/000700_side_by_side.png",
+      "detect": {
+        "detections": [
+          {
+            "class_id": 5,
+            "class_name": "component_container",
+            "confidence": 0.919957,
+            "box": {
+              "x1": 89.59,
+              "y1": 149.152,
+              "x2": 175.272,
+              "y2": 166.513
+            }
+          }
+        ],
+        "image_size": {
+          "width": 300,
+          "height": 300
+        },
+        "model": "best.pt",
+        "confidence_threshold": 0.25,
+        "imgsz": 480
+      },
+      "ask": {
+        "route": "DETECT",
+        "status": "ANSWERED",
+        "answer": "I confidently detected 1 visible debris object(s). This is not proof that the scene is clear of all debris.",
+        "evidence": [
+          {
+            "class_id": 5,
+            "class_name": "component_container",
+            "confidence": 0.919957,
+            "box": {
+              "x1": 89.59,
+              "y1": 149.152,
+              "x2": 175.272,
+              "y2": 166.513
+            }
+          }
+        ],
+        "guardrail_reason": null,
+        "intent": "COUNT_CATEGORY",
+        "phrasing_backend": "deterministic"
+      }
+    },
+    {
+      "image_id": "022564",
+      "source_sha256": "BFE53BF4B017C70406AD1B41FF4D0CD56E76EE1515536BC0E1BB7CA457AA85D4",
+      "figure": "docs/figures/predictions/022564_side_by_side.png",
+      "detect": {
+        "detections": [
+          {
+            "class_id": 3,
+            "class_name": "loose_metal",
+            "confidence": 0.793044,
+            "box": {
+              "x1": 140.576,
+              "y1": 139.477,
+              "x2": 165.844,
+              "y2": 173.538
+            }
+          },
+          {
+            "class_id": 4,
+            "class_name": "plastic_paper_debris",
+            "confidence": 0.366999,
+            "box": {
+              "x1": 140.576,
+              "y1": 139.477,
+              "x2": 165.844,
+              "y2": 173.538
+            }
+          }
+        ],
+        "image_size": {
+          "width": 300,
+          "height": 300
+        },
+        "model": "best.pt",
+        "confidence_threshold": 0.25,
+        "imgsz": 480
+      },
+      "ask": {
+        "route": "DETECT",
+        "status": "INSUFFICIENT_INFORMATION",
+        "answer": "I confidently detected 1 visible debris object(s). This is not proof that the scene is clear of all debris. There are also 1 low-confidence candidate(s).",
+        "evidence": [
+          {
+            "class_id": 3,
+            "class_name": "loose_metal",
+            "confidence": 0.793044,
+            "box": {
+              "x1": 140.576,
+              "y1": 139.477,
+              "x2": 165.844,
+              "y2": 173.538
+            }
+          },
+          {
+            "class_id": 4,
+            "class_name": "plastic_paper_debris",
+            "confidence": 0.366999,
+            "box": {
+              "x1": 140.576,
+              "y1": 139.477,
+              "x2": 165.844,
+              "y2": 173.538
+            }
+          }
+        ],
+        "guardrail_reason": "Low-confidence candidates could change the answer.",
+        "intent": "COUNT_CATEGORY",
+        "phrasing_backend": "deterministic"
+      }
+    },
+    {
+      "image_id": "016303",
+      "source_sha256": "0A306E396AC81567798BD6325C35BF00B40F6086B0A736243542493B02477F9E",
+      "figure": "docs/figures/predictions/016303_side_by_side.png",
+      "detect": {
+        "detections": [],
+        "image_size": {
+          "width": 300,
+          "height": 300
+        },
+        "model": "best.pt",
+        "confidence_threshold": 0.25,
+        "imgsz": 480
+      },
+      "ask": {
+        "route": "DETECT",
+        "status": "INSUFFICIENT_INFORMATION",
+        "answer": "Insufficient information. The model has no confident visible-debris detection in this image. This must not be interpreted as proof that the runway is clear.",
+        "evidence": [],
+        "guardrail_reason": "No confident detections.",
+        "intent": "COUNT_CATEGORY",
+        "phrasing_backend": "deterministic"
+      }
+    }
+  ],
+  "safety_example": {
+    "route": "UNOBSERVABLE",
+    "status": "INSUFFICIENT_INFORMATION",
+    "answer": "Insufficient information. One image can support detection of visible candidate debris only; it cannot certify runway safety, predict aircraft damage, or determine hidden physical facts. An authorized inspection is still required.",
+    "evidence": [],
+    "guardrail_reason": "The question asks for information that is not observable from one image.",
+    "intent": "UNOBSERVABLE",
+    "phrasing_backend": "deterministic"
+  }
+}

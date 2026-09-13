@@ -102,6 +102,19 @@ def test_spatial_question_unsupported() -> None:
     assert response.intent == "UNSUPPORTED"
 
 
+def test_generic_present_object_question_lists_detections() -> None:
+    assert route_question("what is the object that is present?") == "DETECT"
+    assert parse_intent("what is the object that is present?").kind == IntentKind.LIST
+    response = answer_question(
+        "what is the object that is present?",
+        [detection("component_container", 0.92)],
+        phrase_with_llm=False,
+    )
+    assert response.route == "DETECT"
+    assert response.status == "ANSWERED"
+    assert "component container" in response.answer.lower()
+
+
 def test_bounding_box_corners_are_ordered() -> None:
     box = BoundingBox(x1=40, y1=50, x2=10, y2=20)
     assert box.x1 == 10 and box.x2 == 40

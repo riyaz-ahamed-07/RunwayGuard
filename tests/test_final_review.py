@@ -177,3 +177,15 @@ def test_operating_point_synthetic_boxes() -> None:
     assert high["true_positive"] == 1
     matched = match_detections(preds, gt, score_threshold=0.25)
     assert matched["precision"] == 0.5
+
+
+def test_operating_point_class_confusion_counts_as_fp() -> None:
+    gt = [Box(0, 0, 10, 10, class_id=0)]
+    preds = [Box(0, 0, 10, 10, class_id=1, confidence=0.9)]
+    matched = match_detections(preds, gt, score_threshold=0.25)
+    assert matched["class_confusion"] == 1
+    assert matched["false_positive"] == 1
+    assert matched["true_positive"] == 0
+    assert matched["false_negative"] == 1
+    assert matched["precision"] == 0.0
+    assert matched["recall"] == 0.0

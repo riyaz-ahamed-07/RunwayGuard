@@ -52,20 +52,38 @@ def match_detections(
         best_idx = None
         best_iou = 0.0
         for gt_idx in remaining:
-            score = iou(pred, ground_truth[gt_idx])
+            gt_candidate = ground_truth[gt_idx]
+            if gt_candidate.class_id != pred.class_id:
+                continue
+            score = iou(pred, gt_candidate)
             if score > best_iou:
                 best_iou = score
                 best_idx = gt_idx
         if best_idx is None or best_iou < iou_threshold:
-            false_positive += 1
-            records.append({"kind": "false_positive", "confidence": pred.confidence, "iou": best_iou})
+            # Prefer labeling same-location wrong-class overlaps as class_confusion.
+            confusion_idx = None
+            confusion_iou = 0.0
+            for gt_idx in remaining:
+                score = iou(pred, ground_truth[gt_idx])
+                if score > confusion_iou:
+                    confusion_iou = score
+                    confusion_idx = gt_idx
+            if confusion_idx is not None and confusion_iou >= iou_threshold:
+                class_confusion += 1
+                false_positive += 1
+                records.append(
+                    {
+                        "kind": "class_confusion",
+                        "confidence": pred.confidence,
+                        "iou": confusion_iou,
+                    }
+                )
+            else:
+                false_positive += 1
+                records.append({"kind": "false_positive", "confidence": pred.confidence, "iou": best_iou})
             continue
-        gt = ground_truth[best_idx]
         remaining.remove(best_idx)
-        if gt.class_id != pred.class_id:
-            class_confusion += 1
-            records.append({"kind": "class_confusion", "confidence": pred.confidence, "iou": best_iou})
-        elif best_iou < 0.75:
+        if best_iou < 0.75:
             localization_error += 1
             true_positive += 1
             records.append({"kind": "localization_weak_tp", "confidence": pred.confidence, "iou": best_iou})

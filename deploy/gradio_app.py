@@ -1,7 +1,9 @@
-"""RunwayGuard reviewer UI (Gradio).
+"""RunwayGuard reviewer UI (Gradio) — single-viewport, Space-friendly.
 
-Loads weights from local MODEL_PATH or HF_WEIGHTS_REPO (default DarkKnight1217/RunwayGuard-rtdetr-l).
-Shows user-facing answers plus backend thresholds, timings, evidence bands, and raw JSON.
+Loads weights from local MODEL_PATH or HF_WEIGHTS_REPO.
+
+On Hugging Face Spaces, GRADIO_SSR_MODE must be false (env var). SSR bakes
+image URLs as http://0.0.0.0:7860 and the browser blocks them.
 """
 
 from __future__ import annotations
@@ -15,6 +17,19 @@ from pathlib import Path
 import gradio as gr
 from huggingface_hub import hf_hub_download
 from PIL import Image, ImageDraw, ImageFont
+
+try:
+    import spaces
+except ImportError:  # local / non-ZeroGPU
+
+    class _SpacesShim:
+        @staticmethod
+        def GPU(fn=None, **_kwargs):
+            if fn is None:
+                return lambda f: f
+            return fn
+
+    spaces = _SpacesShim()
 
 from app.model_service import detect, decode_image, get_model
 from app.reasoning import answer_question, route_question
@@ -30,12 +45,11 @@ DEFAULT_WEIGHTS_REPO = "DarkKnight1217/RunwayGuard-rtdetr-l"
 SAMPLES_DIR = Path(__file__).resolve().parent / "samples"
 
 SAMPLE_CARDS = [
-    ("016303.jpg", "Tiny fastener"),
-    ("022564.jpg", "Loose metal"),
-    ("022573.jpg", "Metal + debris"),
-    ("027929.jpg", "Organic debris"),
-    ("027930.jpg", "Organic vs metal"),
-    ("000700.jpg", "Battery crop"),
+    ("016303.jpg", "Image 016303"),
+    ("022564.jpg", "Image 022564"),
+    ("027929.jpg", "Image 027929"),
+    ("027930.jpg", "Image 027930"),
+    ("000700.jpg", "Image 000700"),
 ]
 
 PART_B_PROMPTS = [
@@ -76,14 +90,23 @@ def ensure_weights() -> str:
 
 
 WEIGHTS_PATH = ensure_weights()
-get_model()
+_MODEL = get_model()
+try:
+    import torch
+
+    if torch.cuda.is_available() and hasattr(_MODEL, "model"):
+        _MODEL.model.to("cuda")
+except Exception:  # noqa: BLE001
+    pass
 
 
 def _font(size: int = 14):
-    try:
-        return ImageFont.truetype("DejaVuSans.ttf", size)
-    except OSError:
-        return ImageFont.load_default()
+    for name in ("DejaVuSans.ttf", "arial.ttf", "Arial.ttf"):
+        try:
+            return ImageFont.truetype(name, size)
+        except OSError:
+            continue
+    return ImageFont.load_default()
 
 
 def draw_detections(image: Image.Image, detections: list, *, min_conf: float) -> Image.Image:
@@ -109,6 +132,14 @@ def image_to_bytes(image: Image.Image) -> bytes:
     return buf.getvalue()
 
 
+def as_pil(image) -> Image.Image | None:
+    if image is None:
+        return None
+    if isinstance(image, Image.Image):
+        return image.convert("RGB")
+    return Image.open(image).convert("RGB")
+
+
 def band_counts(detections: list) -> dict[str, int]:
     return {
         "n_total_returned": len(detections),
@@ -120,35 +151,58 @@ def band_counts(detections: list) -> dict[str, int]:
     }
 
 
-def load_sample(choice: str):
-    if not choice:
+SAMPLE_CHOICES = [
+    (caption, name) for name, caption in SAMPLE_CARDS if (SAMPLES_DIR / name).is_file()
+]
+DEFAULT_SAMPLE = SAMPLE_CHOICES[0][1] if SAMPLE_CHOICES else None
+PROMPT_CHOICES = [name for name, _ in PART_B_PROMPTS]
+PROMPT_MAP = dict(PART_B_PROMPTS)
+
+
+def sample_path(filename: str | None) -> str | None:
+    if not filename:
         return None
-    name = choice.split(" ", 1)[0]
-    path = SAMPLES_DIR / name
-    if not path.exists():
+    path = SAMPLES_DIR / filename
+    return str(path.resolve()) if path.is_file() else None
+
+
+def open_sample(filename: str | None) -> Image.Image | None:
+    path = sample_path(filename)
+    if not path:
         return None
     return Image.open(path).convert("RGB")
 
 
+def load_sample(filename: str | None):
+    path = sample_path(filename)
+    image = open_sample(filename)
+    return path, image, f"Loaded {filename}" if path else "Sample not found."
+
+
+def on_upload(image):
+    pil = as_pil(image)
+    if pil is None:
+        return None, None, "No image."
+    return pil, pil, "Upload ready."
+
+
 def apply_prompt(label: str) -> str:
-    for name, text in PART_B_PROMPTS:
-        if name == label:
-            return text
-    return ""
+    return PROMPT_MAP.get(label, "")
 
 
-def run_detect_ui(image: Image.Image | None, display_conf: float):
-    if image is None:
-        empty = {"error": "Upload an image or pick a sample."}
-        return None, json.dumps(empty, indent=2), json.dumps(empty, indent=2)
+@spaces.GPU(duration=120)
+def run_detect_ui(image, display_conf: float):
+    pil = as_pil(image)
+    if pil is None:
+        empty = {"error": "Choose a sample or upload an image first."}
+        return None, json.dumps(empty, indent=2), json.dumps(empty, indent=2), "Choose an image first."
 
     started = time.perf_counter()
-    decoded = decode_image(image_to_bytes(image))
-    # Pull a wide set for transparency, then filter display.
+    decoded = decode_image(image_to_bytes(pil))
     wide = detect(decoded, min(0.05, display_conf))
     detect_ms = (time.perf_counter() - started) * 1000
     shown = [d for d in wide.detections if d.confidence >= display_conf]
-    annotated = draw_detections(image, wide.detections, min_conf=display_conf)
+    annotated = draw_detections(pil, wide.detections, min_conf=display_conf)
 
     user_view = {
         "detections": [d.model_dump() for d in shown],
@@ -172,33 +226,33 @@ def run_detect_ui(image: Image.Image | None, display_conf: float):
         "all_detections_unfiltered_for_ui": [d.model_dump() for d in wide.detections],
         "displayed_detections": [d.model_dump() for d in shown],
     }
-    return annotated, json.dumps(user_view, indent=2), json.dumps(backend, indent=2)
+    status = f"Detect · {detect_ms:.0f} ms · {len(shown)} boxes ≥ {display_conf:.2f}"
+    return annotated, json.dumps(user_view, indent=2), json.dumps(backend, indent=2), status
 
 
-def run_ask_ui(image: Image.Image | None, question: str):
+@spaces.GPU(duration=120)
+def run_ask_ui(image, question: str):
     question = (question or "").strip()
     if not question:
         empty = {"error": "Enter or select a Part B prompt."}
-        return None, "", json.dumps(empty, indent=2), json.dumps(empty, indent=2)
+        return None, "", json.dumps(empty, indent=2), json.dumps(empty, indent=2), "Enter a question."
 
+    pil = as_pil(image)
     route = route_question(question)
     detect_ms = None
     detection_payload = None
     detections = []
     image_size = None
-    annotated = None
+    annotated = pil.copy() if pil is not None else None
 
-    if image is not None and route == "DETECT":
+    if pil is not None and route == "DETECT":
         started = time.perf_counter()
-        decoded = decode_image(image_to_bytes(image))
-        # Match API: /ask evidence is fixed at 0.25
+        decoded = decode_image(image_to_bytes(pil))
         detection_payload = detect(decoded, ASK_EVIDENCE_CONFIDENCE)
         detect_ms = (time.perf_counter() - started) * 1000
         detections = detection_payload.detections
         image_size = detection_payload.image_size
-        annotated = draw_detections(image, detections, min_conf=ASK_EVIDENCE_CONFIDENCE)
-    elif image is not None:
-        annotated = image.convert("RGB")
+        annotated = draw_detections(pil, detections, min_conf=ASK_EVIDENCE_CONFIDENCE)
 
     started = time.perf_counter()
     answer = answer_question(question, detections, image_size=image_size)
@@ -237,86 +291,128 @@ def run_ask_ui(image: Image.Image | None, question: str):
             "detections": [d.model_dump() for d in detection_payload.detections],
         },
     }
+    status = f"Ask · {route} · detect {detect_ms if detect_ms is not None else '—'} ms · reason {reason_ms:.0f} ms"
     return (
         annotated,
         answer.answer,
         json.dumps(user_view, indent=2),
         json.dumps(backend, indent=2),
+        status,
     )
 
 
-SAMPLE_CHOICES = [f"{name} - {caption}" for name, caption in SAMPLE_CARDS if (SAMPLES_DIR / name).exists()]
-PROMPT_CHOICES = [name for name, _ in PART_B_PROMPTS]
+CSS = """
+.gradio-container { max-width: 920px !important; margin: 0 auto !important; }
+#stage-image { min-height: 320px; }
+#stage-image img {
+  object-fit: contain !important;
+  width: 100% !important;
+  max-height: 48vh !important;
+  background: #111;
+}
+#status-line { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.85rem; opacity: 0.85; }
+.compact-row { gap: 0.75rem !important; align-items: end !important; }
+"""
 
+# Spaces SSR can bake img src as http://0.0.0.0:7860/... — rewrite to same-origin paths.
+HEAD_JS = """
+<script>
+(function () {
+  function fixUrls(root) {
+    (root || document).querySelectorAll("img, a, source").forEach(function (el) {
+      ["src", "href"].forEach(function (attr) {
+        var v = el.getAttribute && el.getAttribute(attr);
+        if (!v) return;
+        if (v.indexOf("0.0.0.0") === -1 && v.indexOf("127.0.0.1") === -1) return;
+        try {
+          var u = new URL(v, window.location.origin);
+          el.setAttribute(attr, u.pathname + u.search);
+        } catch (e) {}
+      });
+    });
+  }
+  fixUrls(document);
+  new MutationObserver(function (mutations) {
+    mutations.forEach(function (m) {
+      m.addedNodes.forEach(function (n) {
+        if (n.nodeType === 1) fixUrls(n);
+      });
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+"""
 
-with gr.Blocks(title="RunwayGuard") as demo:
+DEFAULT_PATH = sample_path(DEFAULT_SAMPLE)
+DEFAULT_PIL = open_sample(DEFAULT_SAMPLE)
+
+with gr.Blocks(title="RunwayGuard", css=CSS, head=HEAD_JS, theme=gr.themes.Soft()) as demo:
+    original = gr.State(DEFAULT_PIL)
+
     gr.Markdown(
         f"""
 # RunwayGuard
-Visible airport FOD candidates (RT-DETR-L). **Not** runway clearance certification.
-
-| Setting | Value |
-| --- | --- |
-| imgsz | `{IMGSZ}` |
-| `/detect` default display conf | `{DETECT_DISPLAY_CONFIDENCE}` |
-| `/ask` evidence conf (fixed) | `{ASK_EVIDENCE_CONFIDENCE}` |
-| `/ask` answer conf | `{ASK_ANSWER_CONFIDENCE}` |
-| weights | `{Path(WEIGHTS_PATH).name}` |
-| classes | {", ".join(CLASS_NAMES)} |
-
-Repo: [riyaz-ahamed-07/RunwayGuard](https://github.com/riyaz-ahamed-07/RunwayGuard) ·
-Weights: [DarkKnight1217/RunwayGuard-rtdetr-l](https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l) ·
-Memo: [MEMO.md](https://github.com/riyaz-ahamed-07/RunwayGuard/blob/main/MEMO.md)
+Visible FOD candidates · RT-DETR-L · **not** clearance certification  
+`imgsz {IMGSZ}` · detect `{DETECT_DISPLAY_CONFIDENCE}` · evidence `{ASK_EVIDENCE_CONFIDENCE}` · answer `{ASK_ANSWER_CONFIDENCE}` · `{Path(WEIGHTS_PATH).name}`  
+[Repo](https://github.com/riyaz-ahamed-07/RunwayGuard) · [Weights](https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l) · [Memo](https://github.com/riyaz-ahamed-07/RunwayGuard/blob/main/MEMO.md)
 """
     )
 
-    with gr.Row():
-        sample_dd = gr.Dropdown(choices=SAMPLE_CHOICES, label="Load sample image (memo failure IDs + test crop)")
-        load_btn = gr.Button("Load sample", variant="secondary")
+    with gr.Row(elem_classes=["compact-row"]):
+        sample_dd = gr.Dropdown(
+            choices=SAMPLE_CHOICES,
+            value=DEFAULT_SAMPLE,
+            label="1 · Choose sample",
+            scale=3,
+        )
+        upload = gr.Image(
+            type="pil",
+            label="Or upload",
+            height=88,
+            sources=["upload"],
+            scale=2,
+        )
+
+    stage = gr.Image(
+        value=DEFAULT_PATH,
+        type="pil",
+        label="2 · Image / detections",
+        elem_id="stage-image",
+        height=380,
+        show_download_button=True,
+    )
+    status = gr.Markdown("Pick a sample → Run detect or Ask.", elem_id="status-line")
 
     with gr.Tab("Detect"):
-        with gr.Row():
-            with gr.Column():
-                img_d = gr.Image(type="pil", label="Upload or sample", height=360)
-                conf_d = gr.Slider(0.05, 0.95, value=0.25, step=0.05, label="Display confidence (/detect filter)")
-                run_d = gr.Button("Run /detect", variant="primary")
-            with gr.Column():
-                out_img_d = gr.Image(type="pil", label="Boxes (display threshold)", height=360)
-        with gr.Row():
-            user_d = gr.Code(language="json", label="User-facing detections")
-            backend_d = gr.Code(language="json", label="Backend trace (thresholds, bands, timings, full set)")
-        run_d.click(run_detect_ui, [img_d, conf_d], [out_img_d, user_d, backend_d])
+        conf = gr.Slider(0.05, 0.95, value=0.25, step=0.05, label="Display confidence")
+        run_d = gr.Button("Run detect", variant="primary")
+    with gr.Tab("Ask"):
+        prompt_dd = gr.Dropdown(choices=PROMPT_CHOICES, value="Count fasteners", label="Part B prompt")
+        question = gr.Textbox(value="How many fasteners are visible?", label="Question", lines=2)
+        run_a = gr.Button("Run ask", variant="primary")
+        answer_box = gr.Textbox(label="Answer", lines=3)
 
-    with gr.Tab("Ask (Part B)"):
-        with gr.Row():
-            with gr.Column():
-                img_a = gr.Image(type="pil", label="Upload or sample (optional for unobservable prompts)", height=320)
-                prompt_dd = gr.Dropdown(choices=PROMPT_CHOICES, label="Ready Part B prompts", value="Count fasteners")
-                fill_btn = gr.Button("Paste prompt into box")
-                question = gr.Textbox(
-                    label="Question",
-                    value="How many fasteners are visible?",
-                    lines=2,
-                )
-                run_a = gr.Button("Run /ask", variant="primary")
-            with gr.Column():
-                out_img_a = gr.Image(type="pil", label="Evidence boxes (≥ 0.25)", height=320)
-                answer_box = gr.Textbox(label="Answer text", lines=4)
-        with gr.Row():
-            user_a = gr.Code(language="json", label="User-facing ask summary")
-            backend_a = gr.Code(language="json", label="Backend trace (route, fixed thresholds, evidence, timings)")
-        fill_btn.click(apply_prompt, [prompt_dd], [question])
-        prompt_dd.change(apply_prompt, [prompt_dd], [question])
-        run_a.click(run_ask_ui, [img_a, question], [out_img_a, answer_box, user_a, backend_a])
+    with gr.Accordion("JSON responses", open=False):
+        user_json = gr.Code(language="json", label="User response", max_lines=16)
+        backend_json = gr.Code(language="json", label="Backend trace", max_lines=16)
 
-    load_btn.click(load_sample, [sample_dd], [img_d])
-    load_btn.click(load_sample, [sample_dd], [img_a])
-    sample_dd.change(load_sample, [sample_dd], [img_d])
-    sample_dd.change(load_sample, [sample_dd], [img_a])
+    sample_dd.change(load_sample, [sample_dd], [stage, original, status])
+    upload.change(on_upload, [upload], [stage, original, status])
+    prompt_dd.change(apply_prompt, [prompt_dd], [question])
+    demo.load(load_sample, [sample_dd], [stage, original, status])
+
+    run_d.click(run_detect_ui, [original, conf], [stage, user_json, backend_json, status])
+    run_a.click(run_ask_ui, [original, question], [stage, answer_box, user_json, backend_json, status])
 
 
-if __name__ == "__main__":
+def _launch(**kwargs):
     demo.queue(default_concurrency_limit=1).launch(
         server_name="0.0.0.0",
         server_port=int(os.environ.get("PORT", "7860")),
+        allowed_paths=[str(SAMPLES_DIR.resolve())],
+        **kwargs,
     )
+
+
+if __name__ == "__main__":
+    _launch()

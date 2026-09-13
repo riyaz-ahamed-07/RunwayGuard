@@ -283,7 +283,29 @@ def parse_intent(question: str) -> Intent:
     )
     wants_most_common = "most common" in normalized
     wants_highest = "highest confidence" in normalized or "highest-confidence" in normalized
-    wants_list = any(term in normalized for term in ("list", "what debris", "what objects"))
+    wants_list = any(
+        term in normalized
+        for term in (
+            "list",
+            "what debris",
+            "what objects",
+            "what object",
+            "what is the object",
+            "what are the object",
+            "what is present",
+            "what's present",
+            "what is visible",
+            "what's visible",
+            "what can you see",
+            "describe the",
+            "identify",
+        )
+    ) or bool(
+        re.search(
+            r"\bwhat (is|are) (the )?(object|objects|debris|fod|item|items)\b",
+            normalized,
+        )
+    )
 
     if wants_highest:
         return Intent(IntentKind.HIGHEST_CONFIDENCE)
@@ -294,6 +316,8 @@ def parse_intent(question: str) -> Intent:
     if (wants_count or wants_presence) and _mentions_unknown_target(normalized) and (categories or subtypes):
         return Intent(IntentKind.UNSUPPORTED)
     if wants_count and _mentions_unknown_target(normalized) and not subtypes and not categories:
+        return Intent(IntentKind.UNSUPPORTED)
+    if wants_presence and _mentions_unknown_target(normalized) and not subtypes and not categories:
         return Intent(IntentKind.UNSUPPORTED)
 
     # Official multiword / exact category phrases outrank contained subtype tokens.
@@ -319,10 +343,15 @@ def parse_intent(question: str) -> Intent:
     if wants_presence and subtypes:
         subtype, parent = subtypes[0]
         return Intent(IntentKind.PRESENCE_SUBTYPE, categories=(parent,), subtype=subtype)
+    # "what is the object that is present?" / "what is visible?" with no class named → list detections
+    if wants_presence and not categories and not subtypes:
+        return Intent(IntentKind.LIST)
 
     if wants_list:
         return Intent(IntentKind.LIST)
-    if categories or subtypes or any(term in normalized for term in ("debris", "fod", "runway", "taxiway")):
+    if categories or subtypes or any(
+        term in normalized for term in ("debris", "fod", "runway", "taxiway", "object", "objects")
+    ):
         return Intent(IntentKind.LIST)
     if _mentions_unknown_target(normalized):
         return Intent(IntentKind.UNSUPPORTED)

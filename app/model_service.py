@@ -102,10 +102,17 @@ def detect(image: Image.Image, confidence: float = DEFAULT_CONFIDENCE) -> Detect
     with _MODEL_LOCK:
         model = get_model()
         started = time.perf_counter()
+        try:
+            import torch
+
+            device = 0 if torch.cuda.is_available() else "cpu"
+        except Exception:  # noqa: BLE001
+            device = "cpu"
         result = model.predict(
             source=image,
             conf=confidence,
             imgsz=IMGSZ,
+            device=device,
             verbose=False,
         )[0]
         names = result.names

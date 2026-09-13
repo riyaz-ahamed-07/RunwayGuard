@@ -2,22 +2,32 @@
 
 Constrained **RT-DETR** object detection + FastAPI reasoning for **visible airport foreign-object debris (FOD)**.
 
-Built for RAP Pre-Hackathon Screening (Round 1): Part A detection API, Part B structured intent + optional direct LLM phrasing (no agent frameworks), reproducible training, honest evaluation.
+Built for RAP Pre-Hackathon Screening (Round 1): Part A detection API, Part B structured intent + optional LLM intent JSON (no agent frameworks), reproducible training, honest evaluation.
 
-|                  |                                                                        |
-| ---------------- | ---------------------------------------------------------------------- |
-| **Repo**         | https://github.com/riyaz-ahamed-07/RunwayGuard                         |
-| **Weights**      | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l (`best.pt`) |
-| **sha256**       | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269`     |
-| **Grouped-test** | mAP50 **0.755** · mAP50-95 **0.636** · P/R **0.734 / 0.812**           |
+| | |
+| --- | --- |
+| **Repo** | https://github.com/riyaz-ahamed-07/RunwayGuard |
+| **Weights** | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l (`best.pt`) |
+| **Live demo** | https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo |
+| **sha256** | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269` |
+| **Grouped-test** | mAP50 **0.755** · mAP50-95 **0.636** · Ultralytics P/R **0.734 / 0.812** |
 
-| Endpoint       | Role                                                         |
-| -------------- | ------------------------------------------------------------ |
-| `GET /health`  | Model readiness                                              |
-| `POST /detect` | Classes, boxes, confidences                                  |
-| `POST /ask`    | Intent routing → structured reasoning → confidence / abstain |
+| Endpoint | Role |
+| --- | --- |
+| `GET /health` | Model readiness |
+| `POST /detect` | Classes, boxes, confidences |
+| `POST /ask` | Intent routing → structured reasoning → answer / abstain |
+| `GET /` | Reviewer UI (samples, Part B prompts, backend traces) |
 
 **Scope:** inspection-prioritization aid for _visible candidate debris_. It does **not** certify a runway as safe, replace authorized inspection, or invent unobserved facts (material, weight, future damage).
+
+### Model predictions (real `/detect`, not ground truth)
+
+Input (left) vs model boxes at confidence ≥ 0.25 (right). Regenerated with `python -m scripts.render_readme_examples`.
+
+![000700 input vs model](docs/figures/predictions/000700_side_by_side.png)
+
+![016303 input vs model — tiny fastener miss](docs/figures/predictions/016303_side_by_side.png)
 
 ```mermaid
 flowchart LR
@@ -49,19 +59,23 @@ flowchart LR
 
 ```text
 RunwayGuard/
-├── app/                      # FastAPI (/detect, /ask, /health)
+├── app/                      # FastAPI + demo routes + static UI
+│   └── static/               # Reviewer UI served at /
 ├── config/taxonomy.json      # 31 FOD-A labels → 7 operational classes
 ├── data_splits/              # Grouped train/val/test manifests (seed 42)
-├── deploy/                   # Samples + Gradio (optional) + deploy notes
-│   └── samples/              # Demo sample crops for the UI
-├── app/static/               # Reviewer demo UI (served at /)
+├── deploy/
+│   ├── samples/              # Demo crops (Image 016303, …)
+│   ├── gradio_app.py         # HF ZeroGPU Space entry helpers
+│   └── README.md
 ├── docs/
 │   ├── artifacts/            # results.csv, test_metrics.json, failure mine
-│   ├── figures/annotation_audit/
-│   ├── hf/MODEL_CARD.md      # Paste into Hub model README
-│   └── ANNOTATION_AUDIT.md
+│   ├── figures/
+│   │   ├── annotation_audit/
+│   │   └── predictions/      # README side-by-side model outputs
+│   ├── hf/MODEL_CARD.md
+│   └── SUBMISSION.md         # API + delivery links
 ├── notebooks/colab_train.ipynb
-├── scripts/                  # Split, VOC→YOLO, audit, failure mine
+├── scripts/
 ├── tests/
 ├── weights/                  # Place best.pt here (gitignored)
 ├── train.py
@@ -74,12 +88,12 @@ RunwayGuard/
 
 ## Why this domain and dataset
 
-| Choice   | Rationale                                                                                                                      |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------ |
-| Problem  | Airport FOD is life-safety relevant; detection maps cleanly to boxes/classes                                                   |
-| Dataset  | [FOD-A v2.1](https://github.com/FOD-UNOmaha/FOD-data) (MIT), Pascal VOC ([arXiv:2110.03072](https://arxiv.org/abs/2110.03072)) |
-| Non-COCO | All seven target classes are operational FOD categories                                                                        |
-| Framing  | Detector finds _visible candidates_; clearance stays a human decision                                                          |
+| Choice | Rationale |
+| --- | --- |
+| Problem | Airport FOD is life-safety relevant; detection maps cleanly to boxes/classes |
+| Dataset | [FOD-A v2.1](https://github.com/FOD-UNOmaha/FOD-data) (MIT), Pascal VOC ([arXiv:2110.03072](https://arxiv.org/abs/2110.03072)) |
+| Non-COCO | All seven target classes are operational FOD categories |
+| Framing | Detector finds _visible candidates_; clearance stays a human decision |
 
 FAA FOD context: <https://www.faa.gov/airports/airport_safety/fod>
 
@@ -121,14 +135,14 @@ flowchart TB
 
 ## Constraints checklist
 
-| Constraint                                  | Status                                                  |
-| ------------------------------------------- | ------------------------------------------------------- |
-| RT-DETR fine-tune (Ultralytics)             | Yes: `train.py`                                         |
-| >=1 non-COCO class                          | Yes: all 7                                              |
-| No LangChain / LangGraph / CrewAI / AutoGen | Yes: `app/reasoning.py` + optional OpenAI HTTP phrasing |
-| No AutoML                                   | Yes                                                     |
-| Reproducible prep + train + eval            | Yes                                                     |
-| Docker                                      | Yes: `Dockerfile`                                       |
+| Constraint | Status |
+| --- | --- |
+| RT-DETR fine-tune (Ultralytics) | Yes: `train.py` |
+| >=1 non-COCO class | Yes: all 7 |
+| No LangChain / LangGraph / CrewAI / AutoGen | Yes: `app/reasoning.py` + optional OpenAI HTTP intent JSON |
+| No AutoML | Yes |
+| Reproducible prep + train + eval | Yes |
+| Docker | Yes: `Dockerfile` |
 
 ---
 
@@ -194,12 +208,12 @@ python train.py \
   --name rtdetr_l_foda
 ```
 
-| Item         | Value                                                                           |
-| ------------ | ------------------------------------------------------------------------------- |
-| Library      | Ultralytics `8.4.147`                                                           |
-| Architecture | RT-DETR-L → `nc=7`                                                              |
-| Optimizer    | AdamW, `lr0=1e-4`, `weight_decay=1e-4`                                          |
-| Seed         | 42 (`deterministic=False`; CUDA deformable-attention backward is not bit-exact) |
+| Item | Value |
+| --- | --- |
+| Library | Ultralytics `8.4.147` |
+| Architecture | RT-DETR-L → `nc=7` |
+| Optimizer | AdamW, `lr0=1e-4`, `weight_decay=1e-4` |
+| Seed | 42 (`deterministic=False`; CUDA deformable-attention backward is not bit-exact) |
 
 ---
 
@@ -216,6 +230,8 @@ python evaluate.py \
 ```
 
 Committed summary: `docs/artifacts/test_metrics.json` · curves: `docs/artifacts/results.csv`.
+
+Headline mAP / library P/R come from Ultralytics COCO-style eval. They are **not** identical to API operating points at 0.25 / 0.50.
 
 Mine memo failure IDs (CPU OK, Colab T4 faster):
 
@@ -237,13 +253,13 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-OpenAPI: <http://localhost:8000/docs>
+Reviewer UI: <http://localhost:8000/> · OpenAPI: <http://localhost:8000/docs>
 
 ### `POST /detect`
 
 ```bash
 curl -s -X POST http://localhost:8000/detect \
-  -F "image=@sample.jpg" \
+  -F "image=@deploy/samples/000700.jpg" \
   -F "confidence=0.25"
 ```
 
@@ -251,9 +267,8 @@ curl -s -X POST http://localhost:8000/detect \
 
 ```bash
 curl -s -X POST http://localhost:8000/ask \
-  -F "image=@sample.jpg" \
-  -F "question=How many fasteners are visible?" \
-  -F "confidence=0.25"
+  -F "image=@deploy/samples/000700.jpg" \
+  -F "question=How many fasteners are visible?"
 ```
 
 Safety / unobservable (no image required for this route class):
@@ -280,14 +295,17 @@ pytest -q
 
 ```bash
 docker build -t runwayguard .
-docker run --rm -p 8000:8000 -e MODEL_PATH=/app/weights/best.pt runwayguard
+docker run --rm -p 8000:8000 -e MODEL_PATH=/app/weights/best.pt -e RUNWAYGUARD_LLM=0 runwayguard
 ```
 
 ---
 
 ## Easy reviewer demo
 
-Open the FastAPI UI at **`/`** (upload or sample images, Part B prompt paste, user JSON + backend traces):
+**Public (no clone):** https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo  
+Free ZeroGPU Space — first load may be slow; visitors have a small daily GPU quota.
+
+**Local UI:**
 
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -295,13 +313,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 http://localhost:8000/
 
-Temporary public tunnel (while this machine is online):
-
-```bash
-npx --yes localtunnel --port 8000
-```
-
-Details: [`deploy/README.md`](deploy/README.md). HF Gradio Spaces on free `cpu-basic` now require PRO; Gradio remains optional locally via `deploy/gradio_app.py`.
+Redeploy Space: `python scripts/deploy_hf_space.py` · notes: [`deploy/README.md`](deploy/README.md).
 
 ---
 
@@ -314,7 +326,7 @@ Details: [`deploy/README.md`](deploy/README.md). HF Gradio Spaces on free `cpu-b
 | Source | this repo |
 | Weights | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
 | Bonus Docker / logging | `Dockerfile`, `app/main.py` |
-| Live demo | FastAPI `/` — see [`deploy/README.md`](deploy/README.md) |
+| Live demo | https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo |
 
 ---
 
