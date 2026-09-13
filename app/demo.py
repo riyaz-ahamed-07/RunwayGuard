@@ -27,12 +27,12 @@ ROOT = Path(__file__).resolve().parents[1]
 SAMPLES_DIR = ROOT / "deploy" / "samples"
 
 SAMPLE_CARDS = [
-    ("016303.jpg", "Small fastener"),
+    ("016303.jpg", "Tiny fastener"),
     ("022564.jpg", "Loose metal"),
     ("022573.jpg", "Metal + debris"),
-    ("027929.jpg", "Natural debris"),
-    ("027930.jpg", "Natural debris (2)"),
-    ("000700.jpg", "Test crop"),
+    ("027929.jpg", "Organic debris"),
+    ("027930.jpg", "Organic vs metal"),
+    ("000700.jpg", "Battery crop"),
 ]
 
 PART_B_PROMPTS = [

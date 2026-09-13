@@ -24,7 +24,8 @@
     if (!src) {
       frame.classList.remove("has-image");
       img.removeAttribute("src");
-      $("stageEmpty").textContent = "Pick a sample or upload an image";
+      $("stageEmpty").textContent = "Choose a sample on the left";
+      $("fileLabel").textContent = "No image selected";
       return;
     }
     img.src = src;
@@ -32,14 +33,15 @@
     if (label) $("fileLabel").textContent = label;
   }
 
-  function setImageFile(file, previewUrl) {
+  function setImageFile(file) {
     state.file = file;
     if (state.objectUrl) URL.revokeObjectURL(state.objectUrl);
-    state.objectUrl = previewUrl || URL.createObjectURL(file);
+    state.objectUrl = URL.createObjectURL(file);
     setStage(state.objectUrl, file.name);
-    document.querySelectorAll(".sample-btn").forEach((btn) => {
-      btn.setAttribute("aria-selected", String(btn.dataset.file === file.name));
-    });
+
+    const sample = $("sample");
+    const match = [...sample.options].find((o) => o.value === file.name);
+    sample.value = match ? file.name : "";
   }
 
   async function fetchMeta() {
@@ -69,22 +71,26 @@
       ["Memo", links.memo],
     ]
       .filter(([, href]) => href)
-      .map(([label, href]) => `<a href="${href}" ${href.startsWith("http") ? 'target="_blank" rel="noreferrer"' : ""}>${label}</a>`)
+      .map(
+        ([label, href]) =>
+          `<a href="${href}" ${href.startsWith("http") ? 'target="_blank" rel="noreferrer"' : ""}>${label}</a>`,
+      )
       .join("");
 
-    const samples = $("samples");
-    samples.innerHTML = "";
+    const sample = $("sample");
+    sample.innerHTML = "";
+    const placeholder = document.createElement("option");
+    placeholder.value = "";
+    placeholder.textContent = "Select a sample…";
+    sample.appendChild(placeholder);
+    const seen = new Set();
     for (const s of meta.samples || []) {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "sample-btn";
-      btn.dataset.file = s.file;
-      btn.setAttribute("role", "option");
-      btn.setAttribute("aria-selected", "false");
-      btn.textContent = s.label;
-      btn.title = s.file;
-      btn.addEventListener("click", () => loadSample(s.file));
-      samples.appendChild(btn);
+      if (!s.file || seen.has(s.file)) continue;
+      seen.add(s.file);
+      const opt = document.createElement("option");
+      opt.value = s.file;
+      opt.textContent = s.label;
+      sample.appendChild(opt);
     }
 
     const prompt = $("prompt");
@@ -106,6 +112,7 @@
   }
 
   async function loadSample(name) {
+    if (!name) return;
     const res = await fetch(`/demo/samples/${name}`);
     if (!res.ok) throw new Error(`sample ${res.status}`);
     const blob = await res.blob();
@@ -132,12 +139,14 @@
     $("tabAsk").setAttribute("aria-selected", String(!detect));
     $("detectControls").classList.toggle("hidden", !detect);
     $("askControls").classList.toggle("hidden", detect);
-    $("stageLabel").textContent = detect ? "Image / detections" : "Image / evidence";
+    $("stageLabel").textContent = detect
+      ? "Preview / detections"
+      : "Preview / evidence";
   }
 
   async function runDetect() {
     if (!state.file) {
-      setStatus($("detectStatus"), "Select a sample or upload first.", "err");
+      setStatus($("detectStatus"), "Choose a sample or upload first.", "err");
       return;
     }
     const btn = $("runDetect");
@@ -149,12 +158,19 @@
       body.append("confidence", $("conf").value);
       const res = await fetch("/demo/detect", { method: "POST", body });
       const data = await res.json();
-      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `HTTP ${res.status}`);
+      if (!res.ok)
+        throw new Error(
+          typeof data.detail === "string" ? data.detail : `HTTP ${res.status}`,
+        );
       if (data.annotated_image) setStage(data.annotated_image, state.file.name);
       $("userJson").textContent = pretty(data.user);
       $("backendJson").textContent = pretty(data.backend);
       const ms = data.backend?.timing_ms?.detect;
-      setStatus($("detectStatus"), ms != null ? `${ms} ms · ${data.user.count} shown` : "Done", "ok");
+      setStatus(
+        $("detectStatus"),
+        ms != null ? `${ms} ms · ${data.user.count} shown` : "Done",
+        "ok",
+      );
     } catch (err) {
       setStatus($("detectStatus"), String(err.message || err), "err");
     } finally {
@@ -177,16 +193,20 @@
       if (state.file) body.append("image", state.file, state.file.name);
       const res = await fetch("/demo/ask", { method: "POST", body });
       const data = await res.json();
-      if (!res.ok) throw new Error(typeof data.detail === "string" ? data.detail : `HTTP ${res.status}`);
+      if (!res.ok)
+        throw new Error(
+          typeof data.detail === "string" ? data.detail : `HTTP ${res.status}`,
+        );
       $("answerText").textContent = data.answer_text || "";
-      if (data.annotated_image) setStage(data.annotated_image, state.file?.name || "evidence");
+      if (data.annotated_image)
+        setStage(data.annotated_image, state.file?.name || "evidence");
       $("userJson").textContent = pretty(data.user);
       $("backendJson").textContent = pretty(data.backend);
       const t = data.backend?.timing_ms || {};
       setStatus(
         $("askStatus"),
         `${data.backend?.route_precheck || "?"} · ${t.detect ?? "—"} / ${t.reason ?? "—"} ms`,
-        "ok"
+        "ok",
       );
     } catch (err) {
       setStatus($("askStatus"), String(err.message || err), "err");
@@ -214,6 +234,11 @@
       $("confOut").textContent = Number($("conf").value).toFixed(2);
     });
     $("file").addEventListener("change", onFileChange);
+    $("sample").addEventListener("change", () => {
+      loadSample($("sample").value).catch((e) =>
+        setStatus($("detectStatus"), String(e), "err"),
+      );
+    });
     $("prompt").addEventListener("change", pastePrompt);
     $("tabDetect").addEventListener("click", () => switchTab("detect"));
     $("tabAsk").addEventListener("click", () => switchTab("ask"));
@@ -227,7 +252,10 @@
     .then(async (meta) => {
       renderMeta(meta);
       const first = meta.samples?.[0]?.file;
-      if (first) await loadSample(first);
+      if (first) {
+        $("sample").value = first;
+        await loadSample(first);
+      }
     })
     .catch((err) => {
       $("subtitle").textContent = `Failed to load /demo/meta: ${err}`;
