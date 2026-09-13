@@ -7,7 +7,7 @@ import threading
 import time
 from pathlib import Path
 
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageFile, ImageOps, UnidentifiedImageError
 from ultralytics import RTDETR
 
 from .runtime_config import CLASS_NAMES, DETECT_DISPLAY_CONFIDENCE, IMGSZ
@@ -28,9 +28,21 @@ class InvalidImageError(ValueError):
 
 def decode_image(content: bytes) -> Image.Image:
     try:
-        image = Image.open(io.BytesIO(content))
-        image = ImageOps.exif_transpose(image)
+        probe = Image.open(io.BytesIO(content))
+        width, height = probe.size
+        if width <= 0 or height <= 0:
+            raise InvalidImageError("The uploaded file has invalid image dimensions.")
+        if width * height > MAX_DECODE_PIXELS:
+            raise InvalidImageError(
+                f"Image header reports {width * height} pixels, exceeding {MAX_DECODE_PIXELS}."
+            )
+        ImageFile.LOAD_TRUNCATED_IMAGES = False
+        image = ImageOps.exif_transpose(probe)
         image.load()
+    except InvalidImageError:
+        raise
+    except Image.DecompressionBombError as exc:
+        raise InvalidImageError("Image rejected as a decompression bomb.") from exc
     except (UnidentifiedImageError, OSError, SyntaxError) as exc:
         raise InvalidImageError("The uploaded file is not a readable image.") from exc
     if image.width * image.height > MAX_DECODE_PIXELS:

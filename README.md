@@ -246,10 +246,10 @@ curl -s -X POST http://localhost:8000/ask \
 
 ### Part B policy
 
-1. **Deterministic intent + arithmetic** in `app/reasoning.py` (counts, ties, subtype abstention, safety refuse).
-2. **Optional LLM phrasing** via direct OpenAI HTTP (`app/llm_phrase.py`) — only rewords an already-validated conclusion; never invents detections. Requires `OPENAI_API_KEY`. Disable with `RUNWAYGUARD_LLM=0`. No LangChain/CrewAI/etc.
-3. **`/ask` evidence confidence is fixed at 0.25** on the server (callers cannot hide mid-score boxes). Answers use detections ≥ **0.50**. `/detect` still accepts a display `confidence` filter separately.
-4. Train/eval/serve share **imgsz=480** (`app/runtime_config.py`).
+1. **Deterministic intent grammar + arithmetic** in `app/reasoning.py` (authoritative answers).
+2. **Optional direct OpenAI HTTP** may propose **structured intent JSON only** (`app/llm_phrase.py`). Proposals are schema-validated (allowed kinds, categories, evidence IDs). The final sentence is always rendered in code. Free-form model text never becomes the answer. Set `OPENAI_API_KEY` to exercise the path; `RUNWAYGUARD_LLM=0` forces deterministic-only (default in Docker).
+3. **`/ask` evidence confidence is fixed at 0.25**; answers use ≥ **0.50**. `/detect` keeps its own display filter.
+4. Shared **imgsz=480**. Subtype / unknown-target / negation / exclusion / spatial / colour questions abstain.
 
 ```bash
 pytest -q
