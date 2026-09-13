@@ -2,6 +2,7 @@
   "method": "scripts/mine_failures.py + targeted tiny-box / natural_debris passes",
   "thresholds": { "confidence": 0.25, "iou": 0.5, "imgsz": 480 },
   "split": "grouped test",
+  "presentation_note": "Five mined IDs with visually distinct crops. Adjacent near-dupes 022573 and 027930 remain documented as related context under F2/F3 but are not shown as separate thumbnails.",
   "selected_for_memo": [
     {
       "mode": "small_object_miss",
@@ -19,14 +20,14 @@
       "note": "GT natural_debris matched as loose_metal (+ plastic FP)"
     },
     {
-      "mode": "natural_debris_metal_bias",
-      "id": "027930",
-      "note": "GT natural_debris predicted only as loose_metal"
+      "mode": "small_object_localization_fn",
+      "id": "012537",
+      "note": "GT tiny fastener_hardware; prediction exists but IoU match still FN"
     },
     {
-      "mode": "loose_metal_precision",
-      "id": "022573",
-      "note": "GT loose_metal; high-conf natural_debris FP"
+      "mode": "small_object_miss_low_contrast",
+      "id": "016440",
+      "note": "GT fastener_hardware; no detections on stained/low-contrast pavement"
     }
   ]
 }

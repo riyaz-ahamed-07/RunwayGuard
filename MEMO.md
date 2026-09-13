@@ -1,12 +1,25 @@
-# RunwayGuard
+# MEMORANDUM
 
-Constrained RT-DETR detection and evidence-grounded question answering for **visible airport foreign-object debris (FOD)**. The system proposes inspection-priority candidates from a still image; runway clearance remains a human decision.
+|             |                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------ |
+| **To**      | RAP Pre-Hackathon Screening reviewers                                                      |
+| **From**    | Mohamed Riyaz Ahamed · RunwayGuard                                                         |
+| **Date**    | 14 September 2026                                                                          |
+| **Subject** | RT-DETR FOD detection + evidence-grounded `/ask` — decisions, metrics, failures, reasoning |
 
-[Source](https://github.com/riyaz-ahamed-07/RunwayGuard) · [Weights](https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l) · [Demo](https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo) · [API setup](docs/SUBMISSION.md)
+[Repo](https://github.com/riyaz-ahamed-07/RunwayGuard) · [Weights](https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l) · [Demo](https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo) · [API setup](docs/SUBMISSION.md)
 
 ---
 
-## Architecture
+## 1. Purpose
+
+RunwayGuard fine-tunes **RT-DETR-L** to locate **visible airport FOD candidates** in a still image and serves them through FastAPI `/detect` and `/ask`. It is an inspection aid: it does not authorize runway reopening or invent unobserved properties (material, mass, future damage).
+
+This memo covers RAP’s required content: design decisions, frozen metrics, **five mined failures**, and the Part B reasoning layer.
+
+---
+
+## 2. System overview
 
 ```mermaid
 flowchart LR
@@ -32,90 +45,117 @@ flowchart LR
   POL --> OUT[Answer or abstain]
 ```
 
-| Component | Choice                                                           | Rationale                                                          |
-| --------- | ---------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Detector  | Fine-tune **RT-DETR-L** on FOD-A                                 | Operational FOD labels beyond COCO                                 |
-| Taxonomy  | 31 source labels → **7** classes                                 | More stable training; subtypes (e.g. screwdriver) are out of scope |
-| Reasoning | Deterministic rules first; LLM optional for **intent JSON only** | Inspectable answers; no agent frameworks                           |
+| Decision  | Choice                                                             | Rationale                                                 |
+| --------- | ------------------------------------------------------------------ | --------------------------------------------------------- |
+| Detector  | Fine-tune **RT-DETR-L** on FOD-A                                   | Operational FOD labels beyond COCO                        |
+| Taxonomy  | 31 → **7** classes ([`taxonomy.json`](config/taxonomy.json))       | Stable training; subtypes (e.g. screwdriver) out of scope |
+| Reasoning | Handwritten intent + policy; LLM optional for **intent JSON only** | Inspectable answers; no agent frameworks / AutoML         |
 
 ---
 
-## Data and training
+## 3. Dataset and training method
 
 **Dataset**
 
-- Source: [FOD-A v2.1](https://arxiv.org/abs/2110.03072)
-- Size: **33,793** images at **300×300**, Pascal VOC boxes
-- No extra scraped training data
-- Label map: [`config/taxonomy.json`](config/taxonomy.json) (31 → 7 classes)
-- [Annotation audit sheet](docs/figures/annotation_audit/annotation_audit_01.jpg) = label checks, not model predictions
+- [FOD-A v2.1](https://arxiv.org/abs/2110.03072): **33,793** images, 300×300, Pascal VOC; no scraped extras
+- [Annotation audit sheet](docs/figures/annotation_audit/annotation_audit_01.jpg) = label checks, not predictions
 
 **Split**
 
-- Publisher split rejected: duplicate / overlapping IDs
-- Also found **1,403** identical dHash groups across trainval and test (near-duplicate contamination risk)
-- Replacement: grouped split ([`scripts/create_grouped_split.py`](scripts/create_grouped_split.py), seed **42**)
-- Grouping signals: dHash distance ≤18, adjacent IDs, label tuples, environment tags
-- Counts: **24,103** train · **4,808** val · **4,882** test
-- Limit: leakage-risk heuristic — not a claim of video independence
+- Publisher split rejected: overlapping IDs + **1,403** identical dHash groups across trainval/test
+- Grouped split ([`create_grouped_split.py`](scripts/create_grouped_split.py), seed **42**): dHash ≤18, adjacent IDs, label tuples, environment tags
+- **24,103 / 4,808 / 4,882** train / val / test — leakage heuristic, not video-independence proof
 
-**Training (frozen run)**
+**Training (frozen)**
 
-- Hardware: Colab Tesla T4
-- Stack: Ultralytics **8.4.147**, AdamW `lr0=1e-4`, batch **8**, `imgsz=480`, seed **42**
-- Duration: **11 epochs (~3.9 h)** — not a full 25-epoch schedule
-- Best val mAP50–95: **0.65885** at epoch **7**
-- Delivered weights: `best.pt` ([`results.csv`](docs/artifacts/results.csv))
+- Colab T4 · Ultralytics **8.4.147** · AdamW `lr0=1e-4` · batch **8** · `imgsz=480` · seed **42**
+- **11 epochs (~3.9 h)**; val mAP50–95 peak **0.65885 @ epoch 7** → `best.pt` ([`results.csv`](docs/artifacts/results.csv))
 
 ---
 
-## Results
+## 4. Results
 
-Grouped-test metrics on the frozen checkpoint ([`test_metrics.json`](docs/artifacts/test_metrics.json)):
+|        Metric |             Value | Notes                                  |
+| ------------: | ----------------: | -------------------------------------- |
+|     **mAP50** |         **0.755** | Grouped test, IoU 0.50                 |
+|  **mAP50–95** |         **0.636** | Mean over IoU thresholds               |
+| Library P / R | **0.734 / 0.812** | Ultralytics; not API P/R @ 0.25 / 0.50 |
 
-|        Metric |             Value | Notes                                          |
-| ------------: | ----------------: | ---------------------------------------------- |
-|     **mAP50** |         **0.755** | AP @ IoU 0.50                                  |
-|  **mAP50–95** |         **0.636** | Mean AP across IoU thresholds                  |
-| Library P / R | **0.734 / 0.812** | Ultralytics report; not API P/R at 0.25 / 0.50 |
+**Per-class mAP50:** plastic_paper 0.966 · component 0.940 · hand_tool 0.839 · fastener 0.821 · flexible 0.761 · **loose_metal 0.541** · **natural_debris 0.418**.
 
-**Per-class mAP50:** plastic_paper_debris 0.966 · component_container 0.940 · hand_tool 0.839 · fastener_hardware 0.821 · flexible_debris 0.761 · **loose_metal 0.541** · **natural_debris 0.418**.
-
-Confidences are ranking scores, not calibrated probabilities. These are saved grouped-test numbers, not a hidden holdout.
-
+Scores are uncalibrated. Source: [`test_metrics.json`](docs/artifacts/test_metrics.json).  
 **SHA256:** `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269`
 
 ---
 
-## Failure analysis (5 cases)
+## 5. Failure analysis
 
-Five mined failures at conf **0.25**, IoU **0.50**, shown as **source crops** (no prediction overlay). Causes are hypotheses. Adjacent frames can be near-duplicates — read related pairs as one confusion family where noted. Logs: [`failure_mine.json`](docs/artifacts/failure_mine.json), [`failure_small_miss.json`](docs/artifacts/failure_small_miss.json).
+Five failures mined @ conf **0.25**, IoU **0.50** ([`memo_failure_ids.json`](docs/artifacts/memo_failure_ids.json)). Source crops only (no overlays). Causes are hypotheses. Crops are **visually distinct** capture families (near-duplicate adjacent IDs from the original mine are noted in text, not shown twice).
 
-| Crop                                                                                            | Failure                                       | Next experiment                                              |
-| ----------------------------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------ |
-| <img src="deploy/samples/016303.jpg" width="140" alt="Tiny fastener miss" />                    | Tiny fastener (~0.23% of image); **no boxes** | Size-binned recall; validation crops / tiling                |
-| <img src="deploy/samples/022564.jpg" width="140" alt="Loose metal with extra plastic paper" />  | GT loose metal; **extra** plastic/paper       | Box overlap + annotation completeness                        |
-| <img src="deploy/samples/027929.jpg" width="140" alt="Natural debris confused as metal" />      | Natural debris → metal (+ plastic/paper)      | Matched-box audit; rebalance natural vs metal                |
-| <img src="deploy/samples/027930.jpg" width="140" alt="Natural debris as metal only" />          | Natural debris → metal only                   | Evaluate on distinct capture groups (near twin of row above) |
-| <img src="deploy/samples/022573.jpg" width="140" alt="Loose metal with extra natural debris" /> | GT loose metal; **extra** natural debris      | Per-box score / overlap (same scene family as 022564)        |
+### F1 — Missed tiny fastener (`016303`)
 
-**Next priority:** tiny-object recall and fewer false candidates. These are proposed experiments, not reported improvements.
+<img src="deploy/samples/016303.jpg" width="150" alt="Missed tiny fastener" />
+
+- **Observation:** GT fastener ≈0.23% of image; **no boxes**
+- **Next:** size-binned recall; validation crops / tiling
+
+### F2 — Extra class on loose metal (`022564`)
+
+<img src="deploy/samples/022564.jpg" width="150" alt="Loose metal with extra class" />
+
+- **Observation:** GT `loose_metal`; extra `plastic_paper_debris` (adjacent near-dupe `022573` swaps the FP class to `natural_debris`)
+- **Next:** box-overlap / annotation audit; FP-class stability within a capture group
+
+### F3 — Natural debris → metal (`027929`)
+
+<img src="deploy/samples/027929.jpg" width="150" alt="Natural debris as metal" />
+
+- **Observation:** GT `natural_debris` → `loose_metal` (+ plastic/paper); adjacent near-dupe `027930` is dHash-identical and predicts metal only
+- **Next:** matched-box audit; rebalance natural vs metal; hold out non-adjacent groups
+
+### F4 — Partial tiny-fastener miss (`012537`)
+
+<img src="deploy/samples/012537.jpg" width="150" alt="Partial tiny fastener miss" />
+
+- **Observation:** GT tiny `fastener_hardware`; model returns a fastener box but still records a **false negative** under IoU 0.50 (localization / match failure on a small object)
+- **Next:** tighten small-object localization; report size-binned precision–recall, not only mAP
+
+### F5 — Missed fastener on stained pavement (`016440`)
+
+<img src="deploy/samples/016440.jpg" width="150" alt="Missed fastener on stain" />
+
+- **Observation:** GT `fastener_hardware`; **no boxes** on a low-contrast / stained surface
+- **Next:** hard-example mining on low-contrast pavement; photometric augmentation checks
+
+**Priority:** tiny-object recall and fewer false candidates — proposed experiments, not claimed gains.
 
 ---
 
-## Question answering and guardrails
+## 6. Reasoning layer (Part B)
 
-[`/ask`](app/reasoning.py) routes each question to detect-needed, no-detection-needed, or unobservable. Evidence for `/ask` is collected at confidence **≥ 0.25** (fixed; callers cannot lower it). Affirmative answers require evidence **≥ 0.50**. Counts refer to predicted candidates. An empty detection set is never treated as proof of clear pavement.
+[`app/reasoning.py`](app/reasoning.py) routes to detect-needed, no-detection-needed, or unobservable.
 
-Optional LLM phrasing ([`app/llm_phrase.py`](app/llm_phrase.py)) proposes **intent JSON only** over direct OpenAI HTTP. The service validates operations, categories, and evidence IDs, preserves protected local decisions, and falls back to the deterministic path on invalid proposals. No agent framework is used; the deterministic path needs no provider key.
+| Rule                  | Setting                         |
+| --------------------- | ------------------------------- |
+| `/ask` evidence floor | **≥ 0.25** (fixed)              |
+| Affirmative answers   | evidence **≥ 0.50**             |
+| No boxes              | never means “pavement is clear” |
 
-| Example                                           | Outcome                                             |
-| ------------------------------------------------- | --------------------------------------------------- |
-| “Is the runway safe to reopen?”                   | `UNOBSERVABLE` / `INSUFFICIENT_INFORMATION`         |
-| “Is there a screwdriver?” with `hand_tool` @ 0.93 | Abstain — trained class cannot resolve that subtype |
+Optional LLM ([`app/llm_phrase.py`](app/llm_phrase.py)): **intent JSON only**; validated ops / categories / evidence IDs; deterministic fallback; no agent frameworks.
+
+| Example                             | Outcome                                     |
+| ----------------------------------- | ------------------------------------------- |
+| “Is the runway safe to reopen?”     | `UNOBSERVABLE` / `INSUFFICIENT_INFORMATION` |
+| “Screwdriver?” + `hand_tool` @ 0.93 | Abstain (class too coarse)                  |
 
 ---
 
-## Delivery
+## 7. Conclusions
 
-At the reviewed revision: checkpoint loads; real-image `/detect` and `/ask` return HTTP 200; **42** tests pass; public weights are reachable without authentication. Docker and demo assets are included. Setup and curl examples: [`docs/SUBMISSION.md`](docs/SUBMISSION.md).
+1. Frozen grouped-test mAP50 **0.755** / mAP50–95 **0.636**; weakest classes are natural debris and loose metal.
+2. Publisher split was unsafe; grouped split reduces leakage risk but is still a heuristic.
+3. Five mined failures span miss, false positive, class confusion, and small-object localization; crops are visually distinct capture families.
+4. Part B guardrails keep answers inspectable under uncertainty.
+5. Next: size-binned recall and capture-group held-out natural/metal tests.
+
+**Verified locally:** checkpoint loads; real `/detect` & `/ask` HTTP 200; **42** tests; public weights. Details: [`docs/SUBMISSION.md`](docs/SUBMISSION.md).
