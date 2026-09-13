@@ -80,7 +80,15 @@ def test_validate_proposal_rejects_bad_evidence_and_category() -> None:
         "exclude_categories": [],
         "subtype": None,
     }
-    assert validate_proposal(bad, detections=PAIR, allowed_categories={"hand_tool", "fastener_hardware"}) is None
+    assert (
+        validate_proposal(
+            bad,
+            detections=PAIR,
+            allowed_categories={"hand_tool", "fastener_hardware"},
+            subtype_to_category={"screwdriver": "hand_tool"},
+        )
+        is None
+    )
 
 
 def test_malicious_free_text_cannot_become_answer(monkeypatch) -> None:
