@@ -4,20 +4,20 @@ Constrained **RT-DETR** object detection + FastAPI reasoning for **visible airpo
 
 Built for RAP Pre-Hackathon Screening (Round 1): Part A detection API, Part B structured intent + optional LLM intent JSON (no agent frameworks), reproducible training, honest evaluation.
 
-| | |
-| --- | --- |
-| **Repo** | https://github.com/riyaz-ahamed-07/RunwayGuard |
-| **Weights** | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l (`best.pt`) |
-| **Live demo** | https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo |
-| **sha256** | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269` |
+|                  |                                                                          |
+| ---------------- | ------------------------------------------------------------------------ |
+| **Repo**         | https://github.com/riyaz-ahamed-07/RunwayGuard                           |
+| **Weights**      | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l (`best.pt`)   |
+| **Live demo**    | https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo            |
+| **sha256**       | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269`       |
 | **Grouped-test** | mAP50 **0.755** · mAP50-95 **0.636** · Ultralytics P/R **0.734 / 0.812** |
 
-| Endpoint | Role |
-| --- | --- |
-| `GET /health` | Model readiness |
-| `POST /detect` | Classes, boxes, confidences |
-| `POST /ask` | Intent routing → structured reasoning → answer / abstain |
-| `GET /` | Reviewer UI (samples, Part B prompts, backend traces) |
+| Endpoint       | Role                                                     |
+| -------------- | -------------------------------------------------------- |
+| `GET /health`  | Model readiness                                          |
+| `POST /detect` | Classes, boxes, confidences                              |
+| `POST /ask`    | Intent routing → structured reasoning → answer / abstain |
+| `GET /`        | Reviewer UI (samples, Part B prompts, backend traces)    |
 
 **Scope:** inspection-prioritization aid for _visible candidate debris_. It does **not** certify a runway as safe, replace authorized inspection, or invent unobserved facts (material, weight, future damage).
 
@@ -27,20 +27,20 @@ Input (left) vs model boxes at confidence ≥ 0.25 (right). Regenerated with `py
 
 ![000700 input vs model](docs/figures/predictions/000700_side_by_side.png)
 
-![016303 input vs model — tiny fastener miss](docs/figures/predictions/016303_side_by_side.png)
+![022564 input vs model](docs/figures/predictions/022564_side_by_side.png)
 
 ```mermaid
 flowchart LR
-  subgraph ingest [Input]
+  subgraph Input
     IMG[Image]
     Q[Optional question]
   end
-  subgraph partA [Part A]
-    DET["/detect RT-DETR imgsz=480"]
+  subgraph PartA[Part A]
+    DET["detect: RT-DETR imgsz 480"]
   end
-  subgraph partB [Part B]
+  subgraph PartB[Part B]
     ROUTE[Intent grammar]
-    POL[Policy + arithmetic]
+    POL[Policy and arithmetic]
     LLM[Optional LLM intent JSON only]
   end
   IMG --> DET
@@ -49,7 +49,7 @@ flowchart LR
   ROUTE --> LLM
   LLM --> POL
   ROUTE --> POL
-  DET --> OUT1[Boxes / classes / scores]
+  DET --> OUT1[Boxes, classes, scores]
   POL --> OUT2[Answer or abstain]
 ```
 
@@ -64,7 +64,7 @@ RunwayGuard/
 ├── config/taxonomy.json      # 31 FOD-A labels → 7 operational classes
 ├── data_splits/              # Grouped train/val/test manifests (seed 42)
 ├── deploy/
-│   ├── samples/              # Demo crops (Image 016303, …)
+│   ├── samples/              # Demo crops (Image 000700, …)
 │   ├── gradio_app.py         # HF ZeroGPU Space entry helpers
 │   └── README.md
 ├── docs/
@@ -88,12 +88,12 @@ RunwayGuard/
 
 ## Why this domain and dataset
 
-| Choice | Rationale |
-| --- | --- |
-| Problem | Airport FOD is life-safety relevant; detection maps cleanly to boxes/classes |
-| Dataset | [FOD-A v2.1](https://github.com/FOD-UNOmaha/FOD-data) (MIT), Pascal VOC ([arXiv:2110.03072](https://arxiv.org/abs/2110.03072)) |
-| Non-COCO | All seven target classes are operational FOD categories |
-| Framing | Detector finds _visible candidates_; clearance stays a human decision |
+| Choice   | Rationale                                                                                                                      |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Problem  | Airport FOD is life-safety relevant; detection maps cleanly to boxes/classes                                                   |
+| Dataset  | [FOD-A v2.1](https://github.com/FOD-UNOmaha/FOD-data) (MIT), Pascal VOC ([arXiv:2110.03072](https://arxiv.org/abs/2110.03072)) |
+| Non-COCO | All seven target classes are operational FOD categories                                                                        |
+| Framing  | Detector finds _visible candidates_; clearance stays a human decision                                                          |
 
 FAA FOD context: <https://www.faa.gov/airports/airport_safety/fod>
 
@@ -115,13 +115,13 @@ FAA FOD context: <https://www.faa.gov/airports/airport_safety/fod>
 
 ```mermaid
 flowchart TB
-  RAW[FOD-A VOC 33,793]
-  AUDIT[ImageSet audit: dupes / overlap / dHash collisions]
-  REJECT[Reject publisher split]
-  GROUP[Grouped split seed 42]
-  T[train 24,103]
-  V[val 4,808]
-  TE[test 4,882 freeze]
+  RAW["FOD-A VOC 33793"]
+  AUDIT["ImageSet audit: dupes, overlap, dHash"]
+  REJECT["Reject publisher split"]
+  GROUP["Grouped split seed 42"]
+  T["train 24103"]
+  V["val 4808"]
+  TE["test 4882 freeze"]
   RAW --> AUDIT --> REJECT --> GROUP
   GROUP --> T
   GROUP --> V
@@ -135,14 +135,14 @@ flowchart TB
 
 ## Constraints checklist
 
-| Constraint | Status |
-| --- | --- |
-| RT-DETR fine-tune (Ultralytics) | Yes: `train.py` |
-| >=1 non-COCO class | Yes: all 7 |
+| Constraint                                  | Status                                                     |
+| ------------------------------------------- | ---------------------------------------------------------- |
+| RT-DETR fine-tune (Ultralytics)             | Yes: `train.py`                                            |
+| >=1 non-COCO class                          | Yes: all 7                                                 |
 | No LangChain / LangGraph / CrewAI / AutoGen | Yes: `app/reasoning.py` + optional OpenAI HTTP intent JSON |
-| No AutoML | Yes |
-| Reproducible prep + train + eval | Yes |
-| Docker | Yes: `Dockerfile` |
+| No AutoML                                   | Yes                                                        |
+| Reproducible prep + train + eval            | Yes                                                        |
+| Docker                                      | Yes: `Dockerfile`                                          |
 
 ---
 
@@ -208,12 +208,12 @@ python train.py \
   --name rtdetr_l_foda
 ```
 
-| Item | Value |
-| --- | --- |
-| Library | Ultralytics `8.4.147` |
-| Architecture | RT-DETR-L → `nc=7` |
-| Optimizer | AdamW, `lr0=1e-4`, `weight_decay=1e-4` |
-| Seed | 42 (`deterministic=False`; CUDA deformable-attention backward is not bit-exact) |
+| Item         | Value                                                                           |
+| ------------ | ------------------------------------------------------------------------------- |
+| Library      | Ultralytics `8.4.147`                                                           |
+| Architecture | RT-DETR-L → `nc=7`                                                              |
+| Optimizer    | AdamW, `lr0=1e-4`, `weight_decay=1e-4`                                          |
+| Seed         | 42 (`deterministic=False`; CUDA deformable-attention backward is not bit-exact) |
 
 ---
 
@@ -319,14 +319,14 @@ Redeploy Space: `python scripts/deploy_hf_space.py` · notes: [`deploy/README.md
 
 ## Deliverables map (RAP)
 
-| Deliverable | Location |
-| --- | --- |
-| API and delivery links | [`docs/SUBMISSION.md`](docs/SUBMISSION.md) |
-| Written memo (≤2 pages) | [`MEMO.md`](MEMO.md) |
-| Source | this repo |
-| Weights | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
-| Bonus Docker / logging | `Dockerfile`, `app/main.py` |
-| Live demo | https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo |
+| Deliverable             | Location                                                      |
+| ----------------------- | ------------------------------------------------------------- |
+| API and delivery links  | [`docs/SUBMISSION.md`](docs/SUBMISSION.md)                    |
+| Written memo (≤2 pages) | [`MEMO.md`](MEMO.md)                                          |
+| Source                  | this repo                                                     |
+| Weights                 | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l    |
+| Bonus Docker / logging  | `Dockerfile`, `app/main.py`                                   |
+| Live demo               | https://huggingface.co/spaces/DarkKnight1217/RunwayGuard-demo |
 
 ---
 

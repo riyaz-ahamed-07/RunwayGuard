@@ -120,30 +120,6 @@
         "intent": "COUNT_CATEGORY",
         "phrasing_backend": "deterministic"
       }
-    },
-    {
-      "image_id": "016303",
-      "source_sha256": "0A306E396AC81567798BD6325C35BF00B40F6086B0A736243542493B02477F9E",
-      "figure": "docs/figures/predictions/016303_side_by_side.png",
-      "detect": {
-        "detections": [],
-        "image_size": {
-          "width": 300,
-          "height": 300
-        },
-        "model": "best.pt",
-        "confidence_threshold": 0.25,
-        "imgsz": 480
-      },
-      "ask": {
-        "route": "DETECT",
-        "status": "INSUFFICIENT_INFORMATION",
-        "answer": "Insufficient information. The model has no confident visible-debris detection in this image. This must not be interpreted as proof that the runway is clear.",
-        "evidence": [],
-        "guardrail_reason": "No confident detections.",
-        "intent": "COUNT_CATEGORY",
-        "phrasing_backend": "deterministic"
-      }
     }
   ],
   "safety_example": {

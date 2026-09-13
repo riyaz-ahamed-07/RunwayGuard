@@ -16,7 +16,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SAMPLES = ("000700", "022564", "016303")
+SAMPLES = ("000700", "022564")
 COLORS = (
     (46, 134, 222),
     (231, 76, 60),

@@ -45,11 +45,10 @@ DEFAULT_WEIGHTS_REPO = "DarkKnight1217/RunwayGuard-rtdetr-l"
 SAMPLES_DIR = Path(__file__).resolve().parent / "samples"
 
 SAMPLE_CARDS = [
-    ("016303.jpg", "Image 016303"),
+    ("000700.jpg", "Image 000700"),
     ("022564.jpg", "Image 022564"),
     ("027929.jpg", "Image 027929"),
     ("027930.jpg", "Image 027930"),
-    ("000700.jpg", "Image 000700"),
 ]
 
 PART_B_PROMPTS = [
