@@ -36,6 +36,7 @@ class DetectResponse(BaseModel):
     image_size: ImageSize
     model: str
     confidence_threshold: float
+    imgsz: int
 
 
 class AskResponse(BaseModel):
@@ -44,3 +45,5 @@ class AskResponse(BaseModel):
     answer: str
     evidence: list[Detection] = Field(default_factory=list)
     guardrail_reason: str | None = None
+    intent: str | None = None
+    phrasing_backend: str = "deterministic"
