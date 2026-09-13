@@ -1,41 +1,30 @@
-# RAP submission pack
+# API and delivery links
 
-This page is the checklist for reviewers. The written memo stays in [`MEMO.md`](../MEMO.md). Everything else required by the brief is linked here.
+Companion to the written memo ([`MEMO.md`](../MEMO.md)).
 
-## Four required deliverables
+## Deliverables
 
-| # | Requirement | Location |
-| --- | --- | --- |
-| 1 | GitHub repo (train, eval, inference, API) | https://github.com/riyaz-ahamed-07/RunwayGuard |
-| 2 | Trained weights (direct download) | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l/resolve/main/best.pt |
-| 3 | Written memo (≤2 pages) | [`MEMO.md`](../MEMO.md) |
-| 4 | API instructions + sample payloads | This page (below) and [`README.md`](../README.md) |
-
-### Weights card
-
-| Item | Value |
+| Item | Location |
 | --- | --- |
-| Hub repo | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
-| File | `best.pt` |
+| Source (train, eval, inference, API) | https://github.com/riyaz-ahamed-07/RunwayGuard |
+| Weights (`best.pt`) | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l/resolve/main/best.pt |
+| Hub model page | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
 | sha256 | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269` |
-| Train record | `docs/artifacts/results.csv` (11 epochs logged, ~3.9 h on Colab T4) |
-| Test metrics | `docs/artifacts/test_metrics.json` (grouped test: mAP50 0.755, mAP50-95 0.636) |
+| Memo | [`MEMO.md`](../MEMO.md) |
+| Train log | [`artifacts/results.csv`](artifacts/results.csv) (11 epochs, ~3.9 h, Colab T4) |
+| Test metrics | [`artifacts/test_metrics.json`](artifacts/test_metrics.json) (mAP50 0.755, mAP50-95 0.636) |
 
 ```bash
 hf download DarkKnight1217/RunwayGuard-rtdetr-l best.pt --local-dir weights
-# PowerShell: Get-FileHash weights\best.pt -Algorithm SHA256
 ```
 
----
-
-## Quick start (reviewer)
+## Run the API
 
 ```bash
 git clone https://github.com/riyaz-ahamed-07/RunwayGuard.git
 cd RunwayGuard
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-source .venv/bin/activate
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 hf download DarkKnight1217/RunwayGuard-rtdetr-l best.pt --local-dir weights
 uvicorn app.main:app --host 0.0.0.0 --port 8000
@@ -43,16 +32,12 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 OpenAPI UI: http://localhost:8000/docs
 
-Docker (after `weights/best.pt` exists):
-
 ```bash
 docker build -t runwayguard .
 docker run --rm -p 8000:8000 -e MODEL_PATH=/app/weights/best.pt runwayguard
 ```
 
----
-
-## API samples
+## Sample requests
 
 ### `GET /health`
 
@@ -67,8 +52,6 @@ curl -s -X POST http://localhost:8000/detect \
   -F "image=@sample.jpg" \
   -F "confidence=0.25"
 ```
-
-Response shape:
 
 ```json
 {
@@ -86,7 +69,7 @@ Response shape:
 }
 ```
 
-### `POST /ask` (grounded count)
+### `POST /ask` (grounded)
 
 ```bash
 curl -s -X POST http://localhost:8000/ask \
@@ -95,7 +78,7 @@ curl -s -X POST http://localhost:8000/ask \
   -F "confidence=0.25"
 ```
 
-### `POST /ask` (unobservable / abstain)
+### `POST /ask` (unobservable)
 
 ```bash
 curl -s -X POST http://localhost:8000/ask \
@@ -112,36 +95,23 @@ curl -s -X POST http://localhost:8000/ask \
 }
 ```
 
-**Policy notes**
+## `/ask` policy
 
-- `/ask` evidence collection is fixed at confidence **0.25**.
-- Answered claims use scores ≥ **0.50**.
-- Shared inference size: **imgsz 480**.
-- Subtype questions (e.g. “screwdriver?”) abstain even if `hand_tool` fires.
-- Optional LLM path proposes structured intent JSON only; final text is code-rendered. Docker sets `RUNWAYGUARD_LLM=0`.
-
----
-
-## Extra material (not required by the brief)
-
-| Extra | Path |
+| Rule | Value |
 | --- | --- |
-| Failure mining IDs used in the memo | [`artifacts/memo_failure_ids.json`](artifacts/memo_failure_ids.json) |
-| Full mine dumps | [`artifacts/failure_mine.json`](artifacts/failure_mine.json), [`failure_small_miss.json`](artifacts/failure_small_miss.json) |
-| Annotation QC figures | [`figures/annotation_audit/`](figures/annotation_audit/) |
-| Gradio demo shell | [`../deploy/`](../deploy/) |
-| Colab train notebook | [`../notebooks/colab_train.ipynb`](../notebooks/colab_train.ipynb) |
-| Hub model card source | [`hf/MODEL_CARD.md`](hf/MODEL_CARD.md) |
+| Evidence confidence | fixed at 0.25 |
+| Answer confidence | ≥ 0.50 |
+| Inference size | imgsz 480 |
+| Subtype questions | abstain (e.g. screwdriver vs `hand_tool`) |
+| Optional LLM | structured intent JSON only; final text code-rendered; Docker `RUNWAYGUARD_LLM=0` |
 
----
+## Supporting artifacts
 
-## SharePoint drop (suggested)
-
-Upload a short note that points here. Do not upload `best.pt` or the dataset.
-
-```text
-Repo:     https://github.com/riyaz-ahamed-07/RunwayGuard
-Memo:     https://github.com/riyaz-ahamed-07/RunwayGuard/blob/main/MEMO.md
-Pack:     https://github.com/riyaz-ahamed-07/RunwayGuard/blob/main/docs/SUBMISSION.md
-Weights:  https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l
-```
+| Artifact | Path |
+| --- | --- |
+| Failure IDs cited in the memo | [`artifacts/memo_failure_ids.json`](artifacts/memo_failure_ids.json) |
+| Failure mining dumps | [`artifacts/failure_mine.json`](artifacts/failure_mine.json), [`artifacts/failure_small_miss.json`](artifacts/failure_small_miss.json) |
+| Annotation QC | [`figures/annotation_audit/`](figures/annotation_audit/) |
+| Gradio shell | [`../deploy/`](../deploy/) |
+| Colab notebook | [`../notebooks/colab_train.ipynb`](../notebooks/colab_train.ipynb) |
+| Hub model card | [`hf/MODEL_CARD.md`](hf/MODEL_CARD.md) |

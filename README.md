@@ -298,7 +298,7 @@ set HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l
 PYTHONPATH=. python deploy/gradio_app.py
 ```
 
-Alternative: keep FastAPI on any host (Render / Railway / VM) with Docker + mounted `best.pt`. Prefer a **public HTTPS URL** in the SharePoint note so reviewers can hit `/docs`.
+Alternative: run FastAPI on any host (Render / Railway / VM) with Docker and mounted `best.pt`, then share the public `/docs` URL.
 
 ---
 
@@ -306,7 +306,7 @@ Alternative: keep FastAPI on any host (Render / Railway / VM) with Docker + moun
 
 | Deliverable | Location |
 | --- | --- |
-| Submission pack (links + API samples) | [`docs/SUBMISSION.md`](docs/SUBMISSION.md) |
+| API and delivery links | [`docs/SUBMISSION.md`](docs/SUBMISSION.md) |
 | Written memo (≤2 pages) | [`MEMO.md`](MEMO.md) |
 | Source | this repo |
 | Weights | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
