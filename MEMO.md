@@ -1,79 +1,68 @@
-# RunwayGuard — Technical Memo (≤2 pages)
+# RunwayGuard — Technical Memo
 
-**Candidate repo:** https://github.com/riyaz-ahamed-07/RunwayGuard  
-**Model:** Ultralytics RT-DETR-L fine-tuned on FOD-A (7 operational classes)  
-**Hardware / time:** *[fill after run — e.g. Colab Tesla T4, N epochs, wall-clock hours]*  
-**Weights:** *[public download URL]* → load as `weights/best.pt` or `MODEL_PATH`
-
----
-
-## 1. Domain, dataset, and sourcing
-
-**Problem.** Detect *visible* airport foreign-object debris (FOD) in runway/taxiway imagery to prioritize inspection. FOD can damage aircraft; clearance remains a human / operational decision.
-
-**Why this domain.** Life-safety framing; non-COCO debris classes; strong fit for a constrained reasoning API (“I see candidates” vs “runway is safe to reopen”). Avoids saturated peer themes (generic PPE-only tutorials) while staying auditable.
-
-**Data.** Official **FOD-A v2.1** Pascal VOC ([FOD-UNOmaha/FOD-data](https://github.com/FOD-UNOmaha/FOD-data), MIT; [arXiv:2110.03072](https://arxiv.org/abs/2110.03072)). 33,793 images at 300×300 with XML boxes. Labels were **not** re-scraped; I audited structure (parseable XML, valid boxes) and produced stratified boxed samples under `docs/figures/annotation_audit/`.
-
-**Taxonomy.** 31 source labels map into seven operational classes (`config/taxonomy.json`): fastener hardware, hand tools, flexible debris, loose metal, plastic/paper, component/container, natural debris. Fine labels that do not change the operational response (inspect/remove) and that lack enough independent capture groups for leakage-free AP were merged deliberately—not dropped.
-
-**Mid-project note.** Early exploration considered other life-safety domains; FOD-A was selected for official licensing, dense annotations, and a clear Part B abstention story.
+**Repo:** https://github.com/riyaz-ahamed-07/RunwayGuard  
+**Stack:** Ultralytics RT-DETR-L (v8.4.147) · FastAPI `/detect` + `/ask` · Docker  
+**Train hardware:** Google Colab Tesla T4 · seed 42 · AdamW lr `1e-4` · imgsz 480 · batch 8  
+**Run record:** epochs completed ____ · wall-clock ____ · weights: ____ *(public URL → `weights/best.pt`)*
 
 ---
 
-## 2. Train / val / test split
+## Why this problem (and what it is not)
 
-The **publisher’s ImageSets split was not used**. Audit findings included duplicate list entries, IDs in both trainval and test, and many near-duplicate / identical perceptual-hash groups spanning the official split. That would leak near-identical frames into evaluation and inflate self-reported mAP.
+Airport **foreign object debris (FOD)** can damage aircraft on the AOA; FAA FOD programs treat **detection** as one pillar beside prevention, removal, and evaluation—not as a substitute for authorized inspection (AC 150/5210-24). RunwayGuard therefore answers a narrow, observable question: *what visible debris candidates appear in this image, and where?* It does **not** certify that a runway is clear, safe to reopen, or free of unobserved hazards.
 
-**Replacement:** deterministic **grouped split** (`scripts/create_grouped_split.py`, seed **42**, ~70/15/15) that keeps related captures together: **train 24,103 / val 4,808 / test 4,882**. Manifests live in `data_splits/`. The grouped **test** set is frozen until model and thresholds are fixed.
+I chose FOD-A over saturated tutorial domains because: (1) every target class is **non-COCO**; (2) the data is MIT-licensed, peer-reviewed ([arXiv:2110.03072](https://arxiv.org/abs/2110.03072)), and operationally meaningful; (3) Part B has a sharp abstention boundary that mirrors real automation policy—detect candidates, escalate to humans. Early alternatives (other safety niches) were dropped once FOD-A’s license, label density, and reasoning story were clear.
+
+**Sourcing.** FOD-A v2.1 Pascal VOC only (33,793 images, 300×300, XML boxes). No scraping, no silent relabeling. I validated XML parseability and box geometry, spot-checked stratified overlays in `docs/figures/annotation_audit/`, then mapped 31 publisher labels → **7 operational classes** in `config/taxonomy.json` (inspect/remove response is shared within a class; several fine labels lacked enough independent capture groups for leakage-free per-class AP if kept separate). Annotations were merged, not discarded.
+
+## Split strategy (why the official lists were rejected)
+
+Video-derived detection sets inflate mAP when near-duplicate frames land in both train and test. Auditing the publisher ImageSets showed duplicate IDs, train/test overlap, and **1,403** identical, label-compatible perceptual-hash groups crossing the supplied split. Using that split would have produced a metric I could not defend.
+
+**Fix:** deterministic **grouped split** (`scripts/create_grouped_split.py`, seed **42**, ~70/15/15) that keeps related captures together—**train 24,103 / val 4,808 / test 4,882** (`data_splits/`). The grouped test set stays frozen until weights and thresholds are fixed. That is the evaluation I trust; RAP’s hidden set remains the external judge.
+
+## Metrics — reading them like an engineer
+
+| Number | Decision it supports | What it does *not* support |
+|--------|----------------------|----------------------------|
+| mAP50 | “Are boxes roughly on the object?” | Tight localization / ops clearance |
+| mAP50–95 | Localization under stricter IoU | Cross-airport camera shift |
+| P / R | False alarms vs misses at a threshold | “No box ⇒ runway clear” |
+| Per-class AP / confusion | Which operational classes collide | Material, mass, or future damage |
+
+**Self-reported grouped-test results** *(fill from `evaluate.py` after freeze—do not substitute validation curves)*:  
+mAP50 ____ · mAP50–95 ____ · P ____ · R ____  
+
+*Training diagnostic only:* on T4 validation, mAP50 moved from ~0.03 (epoch 1) to ~0.80 by epoch 4 while losses fell—evidence of learning, **not** the score claimed above.
+
+Self-reported test mAP is secondary to the hidden set. A lower, leakage-aware number with named failure modes is preferable to an inflated official-split score.
+
+## Five failure modes (structured error analysis)
+
+RAP grades root-cause honesty. Failures are organized as a **competence map** (mode → evidence → disposition), not as “the model is bad.” Replace each `⟦id⟧` with a real grouped-test example after error mining; do not invent IDs.
+
+1. **Small-object miss.** FOD-A contains thousands of boxes &lt;1% of image area; RT-DETR at 480 px still drops tiny fasteners. *Evidence:* `⟦id⟧`. *Disposition:* keep high-recall screening threshold; never treat a miss as clearance.
+2. **Background / marking false positive.** Wet sheen, paint edges, or joints mimic debris texture. *Evidence:* `⟦id⟧`. *Disposition:* Part B requires ≥0.50 for answers; human review on low-confidence candidates.
+3. **Taxonomy confusion.** Operational merge (e.g. metal vs fastener hardware) trades fine ID for stable AP; visually adjacent classes still swap. *Evidence:* `⟦id⟧`. *Disposition:* acceptable if both classes trigger the same inspect/remove action; report confusion explicitly.
+4. **Condition shift (blur / compression / lighting).** Motion blur and harsh illumination degrade edges on 300×300 sources. *Evidence:* `⟦id⟧`. *Disposition:* document as in-distribution weakness; prioritize clearer captures operationally.
+5. **Closed-set novelty.** Debris outside the 31-label taxonomy is forced into nearest class or missed. *Evidence:* `⟦id⟧`. *Disposition:* out of scope for this closed detector; abstain rather than invent a class.
+
+## Part B — when the detector is called (and when it must refuse)
+
+Hand-written router in `app/reasoning.py` (no LangChain / CrewAI / AutoGen):
+
+1. **UNOBSERVABLE** (safe to reopen / clear to land / damage / weight / ownership…) → `INSUFFICIENT_INFORMATION`; detector not required to refuse a safety claim.  
+2. **NO_DETECTION_NEEDED** (off-topic) → abstain.  
+3. **DETECT** → run RT-DETR; answer only from detections ≥ **0.50** (form `confidence` default **0.25** only filters returned boxes). Non-detection never becomes “absent” or “clear.”
+
+**Insufficient-information example.**  
+Q: *“Is the runway safe to reopen?”* → route `UNOBSERVABLE`, status `INSUFFICIENT_INFORMATION`: one image can support visible candidates only; authorized inspection remains required.  
+Same policy for *“Is the runway clear?”* and for class questions with no confident hit (“not proof that none is present”).
+
+## Seams (scope honesty)
+
+Production-shaped today: upload limits, request IDs, structured logging, Docker, unit + API tests, reproducible split/train scripts. Explicitly **not** claimed: multi-airport calibration, continuous airfield sensors, or replacement of Part 139 inspection. With more time: size-stratified AP, condition-tagged error slices, and a longer train under the same seed.
 
 ---
 
-## 3. Metrics — what they tell you (and what they don’t)
-
-| Metric | Role |
-|--------|------|
-| mAP50 / mAP50-95 | Ranking quality of boxes vs GT on *this* distribution |
-| Precision / recall | False alarms vs misses at the operating threshold |
-| Per-class AP / confusion | Which operational classes collide (e.g. metal vs fastener) |
-
-**Self-reported (grouped test) — fill after `evaluate.py`:**
-
-- mAP50: *____* mAP50-95: *____* P: *____* R: *____*
-- Hyperparameters: RT-DETR-L, imgsz ___, batch ___, epochs completed ___, seed 42, Ultralytics 8.4.147
-
-**What they do not tell you.** They are **not** RAP’s hidden-set score; they do **not** prove operational runway clearance; staged 300×300 FOD-A may shift under different airports/cameras; non-detection ≠ “clear.”
-
----
-
-## 4. Five failure cases (observed — fill after training)
-
-*Do not invent. After test inference, replace each row with a real image id, screenshot path, and cause.*
-
-| # | Image / path | Symptom | Root cause |
-|---|--------------|---------|------------|
-| 1 | *[id]* | Miss / FP / wrong class | e.g. tiny object (&lt;1% area) |
-| 2 | *[id]* | | e.g. blur / compression |
-| 3 | *[id]* | | e.g. wet reflection / line edge FP |
-| 4 | *[id]* | | e.g. class confusion within taxonomy |
-| 5 | *[id]* | | e.g. lighting / glare / novel debris |
-
----
-
-## 5. Part B reasoning — detector vs abstain
-
-Hand-written router in `app/reasoning.py` (no LangChain/CrewAI/etc.):
-
-1. **UNOBSERVABLE** (safe-to-reopen, damage prediction, weight, ownership, …) → abstain; **detector not required** for the safety claim.
-2. **NO_DETECTION_NEEDED** (off-topic) → abstain.
-3. **DETECT** → run RT-DETR; answer only from boxes/classes with confidence ≥ **0.50**; otherwise **INSUFFICIENT_INFORMATION**. Absence is never certified as “clear.”
-
-**Concrete insufficient-information example**
-
-- **Q:** “Is the runway safe to reopen?” (also: “Is the runway clear?”)  
-- **Route:** `UNOBSERVABLE` **Status:** `INSUFFICIENT_INFORMATION`  
-- **Why:** One image cannot certify operational safety; the API refuses to guess.
-
-A second pattern: class-specific “is X present?” with no confident detection → insufficient information, not “X is absent.”
-
-**Thresholds:** `/detect` may return candidates at form `confidence` (default 0.25); Part B only answers from detections ≥ 0.50.
+*Before SharePoint: paste weights URL + test metrics + five `⟦id⟧` evidence lines, export ≤2 pages PDF.*
