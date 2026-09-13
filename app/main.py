@@ -17,7 +17,7 @@ from .schemas import AskResponse, DetectResponse
 
 app = FastAPI(
     title="RunwayGuard",
-    version="1.1.0",
+    version="1.2.0",
     description=(
         "Auditable RT-DETR API for visible airport foreign-object debris. "
         f"/detect display confidence default={DETECT_DISPLAY_CONFIDENCE}; "
@@ -63,6 +63,10 @@ async def read_upload(upload: UploadFile) -> bytes:
     return content
 
 
+def _ask_with_detections(question: str, detections, image_size) -> AskResponse:
+    return answer_question(question, detections, image_size=image_size)
+
+
 @app.get("/health")
 def health() -> dict[str, object]:
     try:
@@ -99,11 +103,10 @@ async def ask_endpoint(
     image: UploadFile | None = File(None),
     confidence: float | None = Form(None, ge=0.01, le=0.99),
 ) -> AskResponse:
-    """`confidence` on /ask is ignored for evidence collection (fixed server policy)."""
     del confidence
     route = route_question(question)
     if route != "DETECT":
-        return answer_question(question)
+        return await run_in_threadpool(answer_question, question)
     if image is None:
         return AskResponse(
             route="DETECT",
@@ -116,7 +119,7 @@ async def ask_endpoint(
     try:
         decoded = decode_image(await read_upload(image))
         result = await run_in_threadpool(detect, decoded, ASK_EVIDENCE_CONFIDENCE)
-        return answer_question(question, result.detections, image_size=result.image_size)
+        return await run_in_threadpool(_ask_with_detections, question, result.detections, result.image_size)
     except InvalidImageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except (FileNotFoundError, RuntimeError) as exc:

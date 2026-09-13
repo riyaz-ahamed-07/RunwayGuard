@@ -27,8 +27,48 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+MARKER_NAME = ".runwayguard_yolo_output"
+
+
 def read_ids(path: Path) -> list[str]:
     return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+def validate_manifests(splits_dir: Path) -> dict[str, list[str]]:
+    splits: dict[str, list[str]] = {}
+    for split_name in ("train", "val", "test"):
+        ids = read_ids(splits_dir / f"{split_name}.txt")
+        if not ids:
+            raise ValueError(f"Split manifest is empty: {split_name}")
+        if len(ids) != len(set(ids)):
+            raise ValueError(f"Split manifest has duplicate IDs: {split_name}")
+        splits[split_name] = ids
+    train, val, test = set(splits["train"]), set(splits["val"]), set(splits["test"])
+    if train & val or train & test or val & test:
+        raise ValueError("Split manifests are not pairwise disjoint.")
+    return splits
+
+
+def ensure_safe_clean(output_dir: Path) -> None:
+    resolved = output_dir.resolve()
+    forbidden_roots = {
+        Path.home().resolve(),
+        Path.cwd().resolve(),
+        Path("/").resolve(),
+    }
+    if resolved in forbidden_roots:
+        raise ValueError(f"Refusing to clean unsafe output directory: {resolved}")
+    marker = resolved / MARKER_NAME
+    images = resolved / "images"
+    labels = resolved / "labels"
+    if not marker.exists() and (images.exists() or labels.exists()):
+        raise ValueError(
+            f"Refusing --clean-output without {MARKER_NAME} in {resolved}. "
+            "Use a dedicated prepared_data directory previously written by this converter, "
+            "or create an empty output directory."
+        )
+    if marker.exists() and marker.read_text(encoding="utf-8").strip() != "runwayguard-yolo-v1":
+        raise ValueError(f"Unexpected output marker contents in {marker}")
 
 
 def discover_classes(annotation_dir: Path) -> list[str]:
@@ -84,12 +124,23 @@ def convert_annotation(
         if source_name not in source_to_final or box is None:
             raise ValueError(f"Invalid object in {xml_path}")
         name = source_to_final[source_name]
-        xmin = max(0.0, min(width, float(box.findtext("xmin", "0"))))
-        ymin = max(0.0, min(height, float(box.findtext("ymin", "0"))))
-        xmax = max(0.0, min(width, float(box.findtext("xmax", "0"))))
-        ymax = max(0.0, min(height, float(box.findtext("ymax", "0"))))
+        xmin = float(box.findtext("xmin", "0"))
+        ymin = float(box.findtext("ymin", "0"))
+        xmax = float(box.findtext("xmax", "0"))
+        ymax = float(box.findtext("ymax", "0"))
+        for value in (xmin, ymin, xmax, ymax, width, height):
+            if value != value or value in (float("inf"), float("-inf")):
+                raise ValueError(f"Non-finite geometry in {xml_path}")
+        clipped = False
+        cxmin, cymin = max(0.0, min(width, xmin)), max(0.0, min(height, ymin))
+        cxmax, cymax = max(0.0, min(width, xmax)), max(0.0, min(height, ymax))
+        if (cxmin, cymin, cxmax, cymax) != (xmin, ymin, xmax, ymax):
+            clipped = True
+        xmin, ymin, xmax, ymax = cxmin, cymin, cxmax, cymax
         if xmax <= xmin or ymax <= ymin:
             raise ValueError(f"Invalid bounding box in {xml_path}: {(xmin, ymin, xmax, ymax)}")
+        if clipped:
+            print(f"Clipped box to image bounds in {xml_path.name}", flush=True)
         center_x = ((xmin + xmax) / 2) / width
         center_y = ((ymin + ymax) / 2) / height
         box_width = (xmax - xmin) / width
@@ -129,15 +180,21 @@ def main() -> None:
         source_to_final = {name: name for name in source_classes}
     class_to_id = {name: index for index, name in enumerate(classes)}
     split_counts: dict[str, Counter[str]] = {}
+    splits = validate_manifests(splits_dir)
 
-    if args.clean_output and output_dir.exists():
-        for sub in ("images", "labels"):
-            target = output_dir / sub
-            if target.exists():
-                shutil.rmtree(target)
+    if args.clean_output:
+        ensure_safe_clean(output_dir)
+        if output_dir.exists():
+            for sub in ("images", "labels"):
+                target = output_dir / sub
+                if target.exists():
+                    shutil.rmtree(target)
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / MARKER_NAME).write_text("runwayguard-yolo-v1\n", encoding="utf-8")
 
     for split_name in ("train", "val", "test"):
-        ids = read_ids(splits_dir / f"{split_name}.txt")
+        ids = splits[split_name]
         output_images = output_dir / "images" / split_name
         output_labels = output_dir / "labels" / split_name
         output_images.mkdir(parents=True, exist_ok=True)

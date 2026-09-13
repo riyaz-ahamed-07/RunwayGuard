@@ -2,7 +2,8 @@ FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    MODEL_PATH=/app/weights/best.pt
+    MODEL_PATH=/app/weights/best.pt \
+    RUNWAYGUARD_LLM=0
 
 WORKDIR /app
 
@@ -14,6 +15,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY config ./config
 COPY weights ./weights
 
 EXPOSE 8000
