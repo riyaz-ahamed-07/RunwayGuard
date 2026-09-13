@@ -1,7 +1,16 @@
 .git
 .venv
+venv
 __pycache__
+*.py[cod]
+.pytest_cache
 runs
 prepared_data
+docs
+notebooks
 tests
+data_splits
+scripts
 *.zip
+*.md
+!requirements.txt
