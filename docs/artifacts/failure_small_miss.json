@@ -1,0 +1,208 @@
+[
+  {
+    "id": "012537",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [
+      "fastener_hardware"
+    ],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0049083069
+  },
+  {
+    "id": "016303",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0022977053981700028
+  },
+  {
+    "id": "016307",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0022977053981700028
+  },
+  {
+    "id": "016311",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.002297695218000005
+  },
+  {
+    "id": "016315",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0022977053981700028
+  },
+  {
+    "id": "016428",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0037948224209999916
+  },
+  {
+    "id": "016432",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.003683532840761097
+  },
+  {
+    "id": "016436",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0035729865256800054
+  },
+  {
+    "id": "016440",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.003463124772911099
+  },
+  {
+    "id": "016444",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.003354134973750002
+  },
+  {
+    "id": "016448",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0032456739992999992
+  },
+  {
+    "id": "016452",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0031378894948200014
+  },
+  {
+    "id": "016456",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [
+      "fastener_hardware"
+    ],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.003030806144408903
+  },
+  {
+    "id": "023560",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0011752668661400014
+  },
+  {
+    "id": "023564",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0006079532571000008
+  },
+  {
+    "id": "023568",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0004653336544199998
+  },
+  {
+    "id": "023572",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.000422520242500001
+  },
+  {
+    "id": "023576",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0003781434831689016
+  },
+  {
+    "id": "023580",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0003290484475389005
+  },
+  {
+    "id": "023584",
+    "gt": [
+      "fastener_hardware"
+    ],
+    "pred": [
+      "fastener_hardware"
+    ],
+    "fn": 1,
+    "tiny_gt": 1,
+    "min_gt_area": 0.0003115232399999993
+  }
+]

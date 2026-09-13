@@ -1,0 +1,413 @@
+{
+  "false_positive": [
+    {
+      "id": "022563",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.6377472877502441
+    },
+    {
+      "id": "022564",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.7930437922477722
+    },
+    {
+      "id": "022565",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris",
+        "fastener_hardware"
+      ],
+      "fp": 2,
+      "max_pred_conf": 0.6767722368240356
+    },
+    {
+      "id": "022566",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "plastic_paper_debris",
+        "loose_metal"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.6482270956039429
+    },
+    {
+      "id": "022567",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.822523832321167
+    },
+    {
+      "id": "022568",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.7975947856903076
+    },
+    {
+      "id": "022569",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.7359516024589539
+    },
+    {
+      "id": "022570",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.8685404658317566
+    },
+    {
+      "id": "022571",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris",
+        "natural_debris"
+      ],
+      "fp": 2,
+      "max_pred_conf": 0.8323847651481628
+    },
+    {
+      "id": "022572",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "plastic_paper_debris",
+        "loose_metal"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.6594749093055725
+    },
+    {
+      "id": "022573",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fp": 1,
+      "max_pred_conf": 0.9054474234580994
+    },
+    {
+      "id": "022575",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris",
+        "plastic_paper_debris"
+      ],
+      "fp": 2,
+      "max_pred_conf": 0.8464252948760986
+    }
+  ],
+  "loose_metal_fp_context": [
+    {
+      "id": "022563",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022564",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022565",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris",
+        "fastener_hardware"
+      ],
+      "fp": 2
+    },
+    {
+      "id": "022566",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "plastic_paper_debris",
+        "loose_metal"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022567",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022568",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022569",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022570",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022571",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris",
+        "natural_debris"
+      ],
+      "fp": 2
+    },
+    {
+      "id": "022572",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "plastic_paper_debris",
+        "loose_metal"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022573",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fp": 1
+    },
+    {
+      "id": "022575",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris",
+        "plastic_paper_debris"
+      ],
+      "fp": 2
+    }
+  ],
+  "class_confusion": [
+    {
+      "id": "022566",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "plastic_paper_debris",
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "022572",
+      "gt": [
+        "loose_metal"
+      ],
+      "pred": [
+        "plastic_paper_debris",
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027929",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027930",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027931",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027932",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027933",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027934",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027935",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027936",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027937",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    },
+    {
+      "id": "027938",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "confusions": 1
+    }
+  ]
+}
