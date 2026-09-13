@@ -1,39 +1,52 @@
-# Gradio / HF Spaces demo for RunwayGuard
+# RunwayGuard reviewer demo
 
-## Option A — local
+## What you get
+
+Open **`/`** for the UI:
+
+- Upload an image **or** load memo failure samples (`016303`, `022564`, …)
+- **Detect** tab: boxes + user JSON + backend trace (thresholds, score bands, timings, full detection set)
+- **Ask (Part B)** tab: ready-to-paste prompts + answer + backend route/evidence/timing JSON
+- Official API still at `/docs`, `/detect`, `/ask`, `/health`
+
+## Local
 
 ```bash
-pip install gradio huggingface_hub
-set HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l
-# or place weights/best.pt locally and skip the env var
-set PYTHONPATH=.
-python deploy/gradio_app.py
+pip install -r requirements.txt
+# weights/best.pt already present, or:
+# set HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-## Option B — Hugging Face Space
+Open http://localhost:8000/
 
-1. Create Space → Gradio → Python 3.11 (public).
-2. Add Space variable: `HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l`.
-3. Upload / sync: `app/`, `config/`, `deploy/gradio_app.py` as `app.py` entry, plus a Space `requirements.txt`:
-
-```text
-ultralytics==8.4.147
-pillow==11.3.0
-pydantic==2.11.7
-httpx==0.28.1
-gradio>=4.44.0
-huggingface_hub>=0.25.0
-python-multipart==0.0.20
-fastapi==0.116.1
-```
-
-4. Point Space to run `deploy/gradio_app.py` (or copy it to root `app.py` and fix imports).
-
-## Option C — FastAPI for reviewers
+## Docker
 
 ```bash
 docker build -t runwayguard .
-docker run --rm -p 8000:8000 -e MODEL_PATH=/app/weights/best.pt runwayguard
+docker run --rm -p 8000:8000 -e RUNWAYGUARD_LLM=0 runwayguard
 ```
 
-Share `https://YOUR_HOST/docs` if the API is hosted publicly.
+If `weights/` is empty in the image, set `HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l` so startup downloads `best.pt`.
+
+## Public URL (temporary tunnel)
+
+While the API is running locally:
+
+```bash
+npx --yes localtunnel --port 8000
+```
+
+Share the printed URL. Keep the machine awake while reviewers test.
+
+## Hugging Face Gradio Space
+
+HF now requires **PRO** for free `cpu-basic` Gradio/Docker Spaces. Prefer the FastAPI UI above, or pay for PRO and use `deploy/hf_space/` + `scripts/deploy_hf_space.ps1`.
+
+## Gradio (local only)
+
+```bash
+pip install "gradio>=5.5.0" huggingface_hub
+set PYTHONPATH=.
+python deploy/gradio_app.py
+```

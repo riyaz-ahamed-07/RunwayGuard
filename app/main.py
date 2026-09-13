@@ -7,12 +7,20 @@ import uuid
 from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from starlette.concurrency import run_in_threadpool
 
+from .demo import router as demo_router
 from .model_service import DEFAULT_CONFIDENCE, InvalidImageError, decode_image, detect, get_model
 from .reasoning import CONFIDENT_THRESHOLD, answer_question, route_question
 from .runtime_config import ASK_EVIDENCE_CONFIDENCE, DETECT_DISPLAY_CONFIDENCE, IMGSZ
 from .schemas import AskResponse, DetectResponse
+from .weights_bootstrap import ensure_weights
+
+STATIC_DIR = Path(__file__).resolve().parent / "static"
+
+ensure_weights()
 
 
 app = FastAPI(
@@ -30,6 +38,20 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s %(message)s",
 )
 LOGGER = logging.getLogger("runwayguard.api")
+
+app.include_router(demo_router)
+
+
+@app.get("/")
+def ui_home() -> FileResponse:
+    index = STATIC_DIR / "index.html"
+    if not index.is_file():
+        raise HTTPException(status_code=404, detail="Demo UI not packaged.")
+    return FileResponse(index)
+
+
+if STATIC_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
 @app.middleware("http")

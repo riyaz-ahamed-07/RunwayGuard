@@ -52,7 +52,9 @@ RunwayGuard/
 ├── app/                      # FastAPI (/detect, /ask, /health)
 ├── config/taxonomy.json      # 31 FOD-A labels → 7 operational classes
 ├── data_splits/              # Grouped train/val/test manifests (seed 42)
-├── deploy/                   # Gradio demo for HF Spaces / local review
+├── deploy/                   # Samples + Gradio (optional) + deploy notes
+│   └── samples/              # Demo sample crops for the UI
+├── app/static/               # Reviewer demo UI (served at /)
 ├── docs/
 │   ├── artifacts/            # results.csv, test_metrics.json, failure mine
 │   ├── figures/annotation_audit/
@@ -283,22 +285,23 @@ docker run --rm -p 8000:8000 -e MODEL_PATH=/app/weights/best.pt runwayguard
 
 ---
 
-## Easy reviewer demo (deploy)
+## Easy reviewer demo
 
-Fastest path for RAP reviewers without cloning:
-
-1. Publish weights on Hugging Face (section above).
-2. Create a **Gradio Space** (CPU is fine for light demos; T4 if available).
-3. Set Space variable `HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l`.
-4. Ship `deploy/gradio_app.py` as the Space entry (see `deploy/README.md`) **or** run locally:
+Open the FastAPI UI at **`/`** (upload or sample images, Part B prompt paste, user JSON + backend traces):
 
 ```bash
-pip install gradio huggingface_hub
-set HF_WEIGHTS_REPO=DarkKnight1217/RunwayGuard-rtdetr-l
-PYTHONPATH=. python deploy/gradio_app.py
+uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-Alternative: run FastAPI on any host (Render / Railway / VM) with Docker and mounted `best.pt`, then share the public `/docs` URL.
+http://localhost:8000/
+
+Temporary public tunnel (while this machine is online):
+
+```bash
+npx --yes localtunnel --port 8000
+```
+
+Details: [`deploy/README.md`](deploy/README.md). HF Gradio Spaces on free `cpu-basic` now require PRO; Gradio remains optional locally via `deploy/gradio_app.py`.
 
 ---
 
@@ -311,7 +314,7 @@ Alternative: run FastAPI on any host (Render / Railway / VM) with Docker and mou
 | Source | this repo |
 | Weights | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
 | Bonus Docker / logging | `Dockerfile`, `app/main.py` |
-| Optional Gradio shell | `deploy/` |
+| Live demo | FastAPI `/` — see [`deploy/README.md`](deploy/README.md) |
 
 ---
 

@@ -4,15 +4,15 @@ Companion to the written memo ([`MEMO.md`](../MEMO.md)).
 
 ## Deliverables
 
-| Item | Location |
-| --- | --- |
-| Source (train, eval, inference, API) | https://github.com/riyaz-ahamed-07/RunwayGuard |
-| Weights (`best.pt`) | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l/resolve/main/best.pt |
-| Hub model page | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
-| sha256 | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269` |
-| Memo | [`MEMO.md`](../MEMO.md) |
-| Train log | [`artifacts/results.csv`](artifacts/results.csv) (11 epochs, ~3.9 h, Colab T4) |
-| Test metrics | [`artifacts/test_metrics.json`](artifacts/test_metrics.json) (mAP50 0.755, mAP50-95 0.636) |
+| Item                                 | Location                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Source (train, eval, inference, API) | https://github.com/riyaz-ahamed-07/RunwayGuard                                             |
+| Weights (`best.pt`)                  | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l/resolve/main/best.pt            |
+| Hub model page                       | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l                                 |
+| sha256                               | `C2D2A418069D9AC8658CA85B8359A9E1AB740CE96826C5138178B080F9243269`                         |
+| Memo                                 | [`MEMO.md`](../MEMO.md)                                                                    |
+| Train log                            | [`artifacts/results.csv`](artifacts/results.csv) (11 epochs, ~3.9 h, Colab T4)             |
+| Test metrics                         | [`artifacts/test_metrics.json`](artifacts/test_metrics.json) (mAP50 0.755, mAP50-95 0.636) |
 
 ```bash
 hf download DarkKnight1217/RunwayGuard-rtdetr-l best.pt --local-dir weights
@@ -30,7 +30,8 @@ hf download DarkKnight1217/RunwayGuard-rtdetr-l best.pt --local-dir weights
 uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
-OpenAPI UI: http://localhost:8000/docs
+Reviewer UI (upload, samples, Part B prompts, backend traces): http://localhost:8000/  
+OpenAPI: http://localhost:8000/docs
 
 ```bash
 docker build -t runwayguard .
@@ -97,21 +98,23 @@ curl -s -X POST http://localhost:8000/ask \
 
 ## `/ask` policy
 
-| Rule | Value |
-| --- | --- |
-| Evidence confidence | fixed at 0.25 |
-| Answer confidence | ≥ 0.50 |
-| Inference size | imgsz 480 |
-| Subtype questions | abstain (e.g. screwdriver vs `hand_tool`) |
-| Optional LLM | structured intent JSON only; final text code-rendered; Docker `RUNWAYGUARD_LLM=0` |
+| Rule                | Value                                                                             |
+| ------------------- | --------------------------------------------------------------------------------- |
+| Evidence confidence | fixed at 0.25                                                                     |
+| Answer confidence   | ≥ 0.50                                                                            |
+| Inference size      | imgsz 480                                                                         |
+| Subtype questions   | abstain (e.g. screwdriver vs `hand_tool`)                                         |
+| Optional LLM        | structured intent JSON only; final text code-rendered; Docker `RUNWAYGUARD_LLM=0` |
 
 ## Supporting artifacts
 
 | Artifact | Path |
 | --- | --- |
+| Live demo UI | Run FastAPI `/` (see [`../deploy/README.md`](../deploy/README.md)); HF Gradio Spaces need PRO on free CPU |
 | Failure IDs cited in the memo | [`artifacts/memo_failure_ids.json`](artifacts/memo_failure_ids.json) |
 | Failure mining dumps | [`artifacts/failure_mine.json`](artifacts/failure_mine.json), [`artifacts/failure_small_miss.json`](artifacts/failure_small_miss.json) |
 | Annotation QC | [`figures/annotation_audit/`](figures/annotation_audit/) |
-| Gradio shell | [`../deploy/`](../deploy/) |
+| Demo UI source | [`../app/static/`](../app/static/), [`../app/demo.py`](../app/demo.py) |
+| Gradio (optional local) | [`../deploy/gradio_app.py`](../deploy/gradio_app.py) |
 | Colab notebook | [`../notebooks/colab_train.ipynb`](../notebooks/colab_train.ipynb) |
 | Hub model card | [`hf/MODEL_CARD.md`](hf/MODEL_CARD.md) |
