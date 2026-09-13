@@ -246,8 +246,15 @@ curl -s -X POST http://localhost:8000/ask \
 Implemented in `app/reasoning.py` — **no** agent frameworks.
 
 1. **Intent routing:** `DETECT` | `NO_DETECTION_NEEDED` | `UNOBSERVABLE`
-2. **Structured reasoning:** counts / presence / most-common over detections with confidence ≥ 0.50
+2. **Structured reasoning:** counts / presence / most-common over detections
 3. **Guardrail:** low confidence, missing image, absence claims, or unobservable questions → `INSUFFICIENT_INFORMATION` (never “runway is clear”)
+
+**Two confidence thresholds (intentional):**
+
+| Knob | Default | Used for |
+|------|---------|----------|
+| Form field `confidence` on `/detect` and `/ask` | `0.25` | Ultralytics NMS / score filter (what boxes are returned) |
+| `CONFIDENT_THRESHOLD` in reasoning | `0.50` | Whether Part B is allowed to answer (below this → insufficient information) |
 
 ```bash
 pytest -q

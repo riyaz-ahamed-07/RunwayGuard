@@ -4,18 +4,24 @@ import os
 import logging
 import time
 import uuid
+from pathlib import Path
 
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from starlette.concurrency import run_in_threadpool
 
 from .model_service import DEFAULT_CONFIDENCE, InvalidImageError, decode_image, detect, get_model
-from .reasoning import answer_question, route_question
+from .reasoning import CONFIDENT_THRESHOLD, answer_question, route_question
 from .schemas import AskResponse, DetectResponse
 
 
 app = FastAPI(
     title="RunwayGuard",
     version="1.0.0",
-    description="Auditable RT-DETR API for visible airport foreign-object debris.",
+    description=(
+        "Auditable RT-DETR API for visible airport foreign-object debris. "
+        f"Detection filter confidence defaults to {DEFAULT_CONFIDENCE}; "
+        f"Part B answers only use detections at or above {CONFIDENT_THRESHOLD}."
+    ),
 )
 logging.basicConfig(
     level=os.environ.get("LOG_LEVEL", "INFO"),
@@ -56,10 +62,16 @@ async def read_upload(upload: UploadFile) -> bytes:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, object]:
     try:
         get_model()
-        return {"status": "ready"}
+        model_name = Path(os.environ.get("MODEL_PATH", "weights/best.pt")).name
+        return {
+            "status": "ready",
+            "model": model_name,
+            "default_detect_confidence": DEFAULT_CONFIDENCE,
+            "confident_answer_threshold": CONFIDENT_THRESHOLD,
+        }
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
@@ -71,7 +83,7 @@ async def detect_endpoint(
 ) -> DetectResponse:
     try:
         decoded = decode_image(await read_upload(image))
-        return detect(decoded, confidence)
+        return await run_in_threadpool(detect, decoded, confidence)
     except InvalidImageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except FileNotFoundError as exc:
@@ -96,7 +108,7 @@ async def ask_endpoint(
         )
     try:
         decoded = decode_image(await read_upload(image))
-        result = detect(decoded, confidence)
+        result = await run_in_threadpool(detect, decoded, confidence)
         return answer_question(question, result.detections)
     except InvalidImageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

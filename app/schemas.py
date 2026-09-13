@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class BoundingBox(BaseModel):
@@ -10,6 +10,13 @@ class BoundingBox(BaseModel):
     y1: float
     x2: float
     y2: float
+
+    @model_validator(mode="after")
+    def ensure_ordered_corners(self) -> BoundingBox:
+        x1, x2 = sorted((self.x1, self.x2))
+        y1, y2 = sorted((self.y1, self.y2))
+        self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
+        return self
 
 
 class Detection(BaseModel):
