@@ -11,12 +11,13 @@ Thumbs.db
 # Training / data artifacts (regenerate locally or on Colab)
 runs/
 prepared_data/
+hf_upload/
 *.pt
 !weights/.gitkeep
 *.zip
 *.cache
 environment.json
-results.csv
+/results.csv
 wandb/
 
 # Local secrets / OS

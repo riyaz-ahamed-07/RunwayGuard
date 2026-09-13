@@ -1,0 +1,384 @@
+{
+  "class_confusion": [
+    {
+      "id": "027929",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027930",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027931",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027932",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027933",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027934",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027935",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027936",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027937",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027938",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027939",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027940",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027941",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 0,
+      "confusions": 1
+    },
+    {
+      "id": "027942",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027943",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    }
+  ],
+  "false_positive": [
+    {
+      "id": "027929",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027942",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027943",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "plastic_paper_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027961",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "loose_metal"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027968",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027969",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027971",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027972",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027973",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027974",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027975",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027976",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027977",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027978",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    },
+    {
+      "id": "027979",
+      "gt": [
+        "natural_debris"
+      ],
+      "pred": [
+        "loose_metal",
+        "natural_debris"
+      ],
+      "fn": 0,
+      "fp": 1,
+      "confusions": 1
+    }
+  ]
+}
