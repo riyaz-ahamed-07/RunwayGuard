@@ -73,7 +73,7 @@ def main() -> None:
     names = load_names(args.prepared_data / "data.yaml")
     label_dir = args.prepared_data / "labels" / args.split
     image_dir = args.prepared_data / "images" / args.split
-    cache_dir = args.prepared_data.parent / "audit_image_cache"
+    cache_dir = args.output_dir / ".image_cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
 
     split_file = args.splits_dir / f"{args.split}.txt"

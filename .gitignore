@@ -2,16 +2,23 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .venv/
+venv/
 .idea/
 .vscode/
-runs/
-weights/*.pt
-prepared_data/
-*.zip
-*.pt
-!weights/.gitkeep
 .DS_Store
 Thumbs.db
+
+# Training / data artifacts (regenerate locally or on Colab)
+runs/
+prepared_data/
+*.pt
+!weights/.gitkeep
+*.zip
+*.cache
 environment.json
 results.csv
-*.cache
+wandb/
+
+# Local secrets / OS
+.env
+.env.*
