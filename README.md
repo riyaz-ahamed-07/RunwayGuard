@@ -304,14 +304,14 @@ Alternative: keep FastAPI on any host (Render / Railway / VM) with Docker + moun
 
 ## Deliverables map (RAP)
 
-| Deliverable             | Location                    |
-| ----------------------- | --------------------------- |
-| Source                  | this repo                   |
-| Weights link            | Hub URL above + `MEMO.md`   |
-| Written memo (≤2 pages) | [`MEMO.md`](MEMO.md)        |
-| API usage               | this README                 |
-| Bonus Docker / logging  | `Dockerfile`, `app/main.py` |
-| Optional live demo      | `deploy/` Gradio Space      |
+| Deliverable | Location |
+| --- | --- |
+| Submission pack (links + API samples) | [`docs/SUBMISSION.md`](docs/SUBMISSION.md) |
+| Written memo (≤2 pages) | [`MEMO.md`](MEMO.md) |
+| Source | this repo |
+| Weights | https://huggingface.co/DarkKnight1217/RunwayGuard-rtdetr-l |
+| Bonus Docker / logging | `Dockerfile`, `app/main.py` |
+| Optional Gradio shell | `deploy/` |
 
 ---
 
