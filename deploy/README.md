@@ -36,4 +36,4 @@ docker build -t runwayguard .
 docker run --rm -p 8000:8000 -e MODEL_PATH=/app/weights/best.pt runwayguard
 ```
 
-Share `https://YOUR_HOST/docs` in the SharePoint submission note.
+Share `https://YOUR_HOST/docs` if the API is hosted publicly.
