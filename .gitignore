@@ -12,6 +12,7 @@ Thumbs.db
 runs/
 prepared_data/
 hf_upload/
+deploy/hf_space_build/
 *.pt
 !weights/.gitkeep
 *.zip

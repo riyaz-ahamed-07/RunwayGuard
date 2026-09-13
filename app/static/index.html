@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>RunwayGuard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="top">
+        <div class="brand-block">
+          <h1 class="brand">RunwayGuard</h1>
+          <p class="tag" id="subtitle">Loading…</p>
+        </div>
+        <div class="metrics" id="metrics"></div>
+        <nav class="links" id="links"></nav>
+      </header>
+
+      <div class="samples-bar">
+        <span class="samples-label">Samples</span>
+        <div class="samples" id="samples" role="listbox" aria-label="Sample images"></div>
+        <label class="upload">
+          <input type="file" id="file" accept="image/*" />
+          <span>Upload</span>
+        </label>
+      </div>
+
+      <main class="workspace">
+        <aside class="controls">
+          <div class="mode" role="tablist">
+            <button type="button" class="mode-btn" id="tabDetect" aria-selected="true">Detect</button>
+            <button type="button" class="mode-btn" id="tabAsk" aria-selected="false">Ask</button>
+          </div>
+
+          <div id="detectControls" class="control-block">
+            <label class="field-label" for="conf">Display confidence</label>
+            <div class="range-wrap">
+              <input type="range" id="conf" min="0.05" max="0.95" step="0.05" value="0.25" />
+              <output id="confOut">0.25</output>
+            </div>
+            <button type="button" class="run" id="runDetect">Run detect</button>
+            <p class="status" id="detectStatus"></p>
+          </div>
+
+          <div id="askControls" class="control-block hidden">
+            <label class="field-label" for="prompt">Part B prompt</label>
+            <select id="prompt"></select>
+            <label class="field-label" for="question">Question</label>
+            <textarea id="question" rows="3"></textarea>
+            <button type="button" class="run" id="runAsk">Run ask</button>
+            <p class="status" id="askStatus"></p>
+            <div class="answer" id="answerText"></div>
+          </div>
+        </aside>
+
+        <section class="stage">
+          <div class="stage-head">
+            <span id="stageLabel">Image</span>
+            <span class="file-name" id="fileLabel">No image selected</span>
+          </div>
+          <div class="stage-frame">
+            <img id="stageImg" alt="Selected or annotated image" />
+            <p class="stage-empty" id="stageEmpty">Pick a sample or upload an image</p>
+          </div>
+        </section>
+
+        <section class="trace">
+          <div class="trace-pane">
+            <div class="trace-head">
+              <span>User response</span>
+              <button type="button" class="copy" data-copy="userJson" title="Copy">Copy</button>
+            </div>
+            <pre id="userJson">{}</pre>
+          </div>
+          <div class="trace-pane">
+            <div class="trace-head">
+              <span>Backend trace</span>
+              <button type="button" class="copy" data-copy="backendJson" title="Copy">Copy</button>
+            </div>
+            <pre id="backendJson">{}</pre>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
