@@ -77,7 +77,11 @@ def get_model() -> RTDETR:
             ordered = [str(name) for name in names]
         else:
             ordered = []
-        if ordered and tuple(ordered) != CLASS_NAMES:
+        if not ordered:
+            raise RuntimeError(
+                "Loaded checkpoint did not expose class names; refusing to serve with unknown mapping."
+            )
+        if tuple(ordered) != CLASS_NAMES:
             raise RuntimeError(
                 "Loaded checkpoint class names do not match config/taxonomy.json order: "
                 f"model={ordered} expected={list(CLASS_NAMES)}"

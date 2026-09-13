@@ -12,9 +12,14 @@ class BoundingBox(BaseModel):
     y2: float
 
     @model_validator(mode="after")
-    def ensure_ordered_corners(self) -> BoundingBox:
+    def ensure_ordered_finite_box(self) -> BoundingBox:
+        for value in (self.x1, self.y1, self.x2, self.y2):
+            if value != value or value in (float("inf"), float("-inf")):
+                raise ValueError("Bounding box coordinates must be finite.")
         x1, x2 = sorted((self.x1, self.x2))
         y1, y2 = sorted((self.y1, self.y2))
+        if x2 <= x1 or y2 <= y1:
+            raise ValueError("Bounding box must have positive area.")
         self.x1, self.x2, self.y1, self.y2 = x1, x2, y1, y2
         return self
 

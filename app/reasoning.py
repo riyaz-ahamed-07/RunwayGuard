@@ -19,6 +19,7 @@ class IntentKind(str, Enum):
     COUNT_SUBTYPE = "COUNT_SUBTYPE"
     COUNT_MULTI = "COUNT_MULTI"
     PRESENCE_CATEGORY = "PRESENCE_CATEGORY"
+    PRESENCE_MULTI = "PRESENCE_MULTI"
     PRESENCE_SUBTYPE = "PRESENCE_SUBTYPE"
     MOST_COMMON = "MOST_COMMON"
     HIGHEST_CONFIDENCE = "HIGHEST_CONFIDENCE"
@@ -140,6 +141,18 @@ UNOBSERVABLE_TERMS = (
     "how far",
 )
 
+UNSUPPORTED_PROPERTIES = (
+    "weight",
+    "colour",
+    "color",
+    "colours",
+    "colors",
+    "temperature",
+    "brand",
+    "logo",
+    "material",
+)
+
 UNSUPPORTED_SPATIAL = (
     "on the left",
     "on the right",
@@ -200,33 +213,44 @@ def _humanized(name: str) -> str:
     return name.replace("_", " ")
 
 
-def _match_all_subtypes(normalized: str) -> list[tuple[str, str]]:
-    ranked = sorted(SUBTYPE_TO_CATEGORY.items(), key=lambda item: -len(item[0]))
-    hits: list[tuple[str, str]] = []
-    for subtype, category in ranked:
-        if _contains_phrase(normalized, subtype):
-            hits.append((subtype, category))
-    return hits
-
-
-def _match_all_categories(normalized: str) -> list[str]:
+def _match_all_categories(normalized: str) -> list[tuple[str, str]]:
+    """Return (class_name, matched_phrase) preferring longer official phrases."""
     ranked: list[tuple[int, str, str]] = []
     for class_name in CLASS_NAMES:
         phrases = {_humanized(class_name), *CATEGORY_ALIASES.get(class_name, ())}
         for phrase in phrases:
             ranked.append((len(phrase), class_name, phrase))
     ranked.sort(key=lambda item: (-item[0], item[1]))
-    found: list[str] = []
+    found: list[tuple[str, str]] = []
+    seen: set[str] = set()
     for _, class_name, phrase in ranked:
-        if class_name in found:
+        if class_name in seen:
             continue
         if _contains_phrase(normalized, phrase):
-            found.append(class_name)
+            found.append((class_name, phrase))
+            seen.add(class_name)
     return found
+
+
+def _match_all_subtypes(normalized: str, category_phrases: list[str]) -> list[tuple[str, str]]:
+    ranked = sorted(SUBTYPE_TO_CATEGORY.items(), key=lambda item: -len(item[0]))
+    hits: list[tuple[str, str]] = []
+    for subtype, category in ranked:
+        if not _contains_phrase(normalized, subtype):
+            continue
+        # Skip subtype tokens that only appear as part of an already-matched official category phrase.
+        if any(subtype in phrase and subtype != phrase for phrase in category_phrases):
+            continue
+        hits.append((subtype, category))
+    return hits
 
 
 def _mentions_unknown_target(normalized: str) -> bool:
     return any(_contains_phrase(normalized, term) for term in UNKNOWN_TARGETS)
+
+
+def _mentions_unsupported_property(normalized: str) -> bool:
+    return any(_contains_phrase(normalized, term) for term in UNSUPPORTED_PROPERTIES)
 
 
 def parse_intent(question: str) -> Intent:
@@ -235,23 +259,27 @@ def parse_intent(question: str) -> Intent:
         return Intent(IntentKind.UNOBSERVABLE)
     if any(_contains_phrase(normalized, term) or term in normalized for term in UNSUPPORTED_SPATIAL):
         return Intent(IntentKind.UNSUPPORTED)
-    if _contains_phrase(normalized, "colour") or _contains_phrase(normalized, "color"):
+    if _mentions_unsupported_property(normalized):
         return Intent(IntentKind.UNSUPPORTED)
     if re.search(r"\bexcept\b|\bexcluding\b|\bbut not\b", normalized):
-        cats = _match_all_categories(normalized)
+        cats = [name for name, _ in _match_all_categories(normalized)]
         if cats:
             return Intent(IntentKind.EXCLUSION, exclude_categories=tuple(cats))
         return Intent(IntentKind.UNSUPPORTED)
     if re.search(r"\bno\b.+\b|\bnot any\b|\baren'?t there\b|\bisn'?t there\b", normalized) and (
         "tool" in normalized or "debris" in normalized or _match_all_categories(normalized)
     ):
-        return Intent(IntentKind.NEGATION, categories=tuple(_match_all_categories(normalized)))
+        cats = [name for name, _ in _match_all_categories(normalized)]
+        return Intent(IntentKind.NEGATION, categories=tuple(cats))
 
-    subtypes = _match_all_subtypes(normalized)
-    categories = _match_all_categories(normalized)
+    category_hits = _match_all_categories(normalized)
+    categories = [name for name, _ in category_hits]
+    category_phrases = [phrase for _, phrase in category_hits]
+    subtypes = _match_all_subtypes(normalized, category_phrases)
     wants_count = "how many" in normalized or _contains_phrase(normalized, "count")
     wants_presence = any(
-        _contains_phrase(normalized, term) for term in ("present", "visible", "is there", "are there", "is this", "is that")
+        _contains_phrase(normalized, term)
+        for term in ("present", "visible", "is there", "are there", "is this", "is that")
     )
     wants_most_common = "most common" in normalized
     wants_highest = "highest confidence" in normalized or "highest-confidence" in normalized
@@ -261,30 +289,37 @@ def parse_intent(question: str) -> Intent:
         return Intent(IntentKind.HIGHEST_CONFIDENCE)
     if wants_most_common:
         return Intent(IntentKind.MOST_COMMON)
+
+    # Mixed known + unknown targets cannot silently drop the unknown part.
+    if (wants_count or wants_presence) and _mentions_unknown_target(normalized) and (categories or subtypes):
+        return Intent(IntentKind.UNSUPPORTED)
     if wants_count and _mentions_unknown_target(normalized) and not subtypes and not categories:
         return Intent(IntentKind.UNSUPPORTED)
-    if wants_count and subtypes and not categories:
-        subtype, parent = subtypes[0]
-        return Intent(IntentKind.COUNT_SUBTYPE, categories=(parent,), subtype=subtype)
-    if wants_count and subtypes and categories:
-        # Prefer subtype when both match (battery vs component).
-        subtype, parent = subtypes[0]
-        return Intent(IntentKind.COUNT_SUBTYPE, categories=(parent,), subtype=subtype)
-    if wants_count and len(categories) > 1:
-        return Intent(IntentKind.COUNT_MULTI, categories=tuple(categories))
-    if wants_count and len(categories) == 1:
+
+    # Official multiword / exact category phrases outrank contained subtype tokens.
+    if wants_count and categories:
+        if len(categories) > 1:
+            return Intent(IntentKind.COUNT_MULTI, categories=tuple(categories))
         return Intent(IntentKind.COUNT_CATEGORY, categories=(categories[0],))
-    if wants_count and _mentions_unknown_target(normalized):
-        return Intent(IntentKind.UNSUPPORTED)
+    if wants_count and subtypes:
+        subtype, parent = subtypes[0]
+        return Intent(IntentKind.COUNT_SUBTYPE, categories=(parent,), subtype=subtype)
     if wants_count and any(term in normalized for term in ("debris", "object", "objects", "fod")):
         return Intent(IntentKind.COUNT_CATEGORY)
     if wants_count:
         return Intent(IntentKind.UNSUPPORTED)
+
+    if wants_presence and subtypes and not categories:
+        subtype, parent = subtypes[0]
+        return Intent(IntentKind.PRESENCE_SUBTYPE, categories=(parent,), subtype=subtype)
+    if wants_presence and len(categories) > 1:
+        return Intent(IntentKind.PRESENCE_MULTI, categories=tuple(categories))
+    if wants_presence and len(categories) == 1:
+        return Intent(IntentKind.PRESENCE_CATEGORY, categories=(categories[0],))
     if wants_presence and subtypes:
         subtype, parent = subtypes[0]
         return Intent(IntentKind.PRESENCE_SUBTYPE, categories=(parent,), subtype=subtype)
-    if wants_presence and categories:
-        return Intent(IntentKind.PRESENCE_CATEGORY, categories=(categories[0],))
+
     if wants_list:
         return Intent(IntentKind.LIST)
     if categories or subtypes or any(term in normalized for term in ("debris", "fod", "runway", "taxiway")):
@@ -428,6 +463,14 @@ def render_facts(intent: Intent, detections: list[Detection]) -> AnswerFacts:
             )
         return AnswerFacts("ANSWERED", answer, evidence, None, intent.kind.value)
     if intent.kind == IntentKind.PRESENCE_CATEGORY:
+        if not intent.categories:
+            return AnswerFacts(
+                "INSUFFICIENT_INFORMATION",
+                "Insufficient information. No category target was resolved for this presence question.",
+                detections,
+                "Missing category target.",
+                intent.kind.value,
+            )
         cat = intent.categories[0]
         n = counts[cat]
         if n == 0:
@@ -443,6 +486,39 @@ def render_facts(intent: Intent, detections: list[Detection]) -> AnswerFacts:
             "ANSWERED",
             f"Yes. I confidently detected {_humanized(cat)} in the image.",
             [item for item in confident if item.class_name == cat],
+            None,
+            intent.kind.value,
+        )
+    if intent.kind == IntentKind.PRESENCE_MULTI:
+        if len(intent.categories) < 2:
+            return AnswerFacts(
+                "INSUFFICIENT_INFORMATION",
+                "Insufficient information. Multi-category presence requires at least two targets.",
+                detections,
+                "Invalid multi-presence target set.",
+                intent.kind.value,
+            )
+        present = [cat for cat in intent.categories if counts[cat] > 0]
+        missing = [cat for cat in intent.categories if counts[cat] == 0]
+        if missing:
+            present_txt = ", ".join(_humanized(c) for c in present) if present else "none"
+            missing_txt = ", ".join(_humanized(c) for c in missing)
+            return AnswerFacts(
+                "INSUFFICIENT_INFORMATION",
+                (
+                    f"Insufficient information for the full conjunction. "
+                    f"Confidently present: {present_txt}. Not confidently detected: {missing_txt}. "
+                    "Missing classes are not proof of absence."
+                ),
+                detections,
+                "Conjunction not fully supported by confident detections.",
+                intent.kind.value,
+            )
+        labels = ", ".join(_humanized(c) for c in intent.categories)
+        return AnswerFacts(
+            "ANSWERED",
+            f"Yes. I confidently detected all requested classes: {labels}.",
+            [item for item in confident if item.class_name in set(intent.categories)],
             None,
             intent.kind.value,
         )
@@ -488,21 +564,30 @@ def answer_question(
     image_size: ImageSize | None = None,
     phrase_with_llm: bool = True,
 ) -> AskResponse:
-    from .llm_phrase import propose_structured_intent, validate_proposal
+    from .llm_phrase import (
+        PROTECTED_LOCAL_KINDS,
+        proposal_compatible_with_local,
+        propose_structured_intent,
+        validate_proposal,
+    )
 
     del image_size
     detections = detections or []
     backend = "deterministic"
     intent = parse_intent(question)
 
-    if phrase_with_llm and intent.kind not in {IntentKind.UNOBSERVABLE, IntentKind.OFF_TOPIC}:
+    # LLM may propose structured intent, but protected local abstentions always win.
+    # evidence_ids from proposals are validated for schema hygiene only and do not
+    # filter detections; uncertainty guardrails always see the full detection list.
+    if phrase_with_llm and intent.kind.value not in PROTECTED_LOCAL_KINDS:
         proposal, backend_label = propose_structured_intent(question, detections, list(CLASS_NAMES))
         validated = validate_proposal(
             proposal,
             detections=detections,
             allowed_categories=set(CLASS_NAMES),
+            subtype_to_category=SUBTYPE_TO_CATEGORY,
         )
-        if validated:
+        if validated and proposal_compatible_with_local(intent.kind.value, intent.categories, validated):
             llm_intent = intent_from_validated_proposal(validated)
             if llm_intent is not None:
                 intent = llm_intent
@@ -540,7 +625,16 @@ def answer_question(
             phrasing_backend="deterministic",
         )
 
-    facts = render_facts(intent, detections)
+    try:
+        facts = render_facts(intent, detections)
+    except Exception:
+        facts = AnswerFacts(
+            "INSUFFICIENT_INFORMATION",
+            "Insufficient information. The reasoning layer could not render a safe answer for this request.",
+            detections,
+            "Render fallback after unexpected error.",
+            "UNSUPPORTED",
+        )
     return AskResponse(
         route="DETECT",
         status=facts.status,  # type: ignore[arg-type]
