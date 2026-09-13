@@ -19,19 +19,78 @@ SUPPORTED_CLASSES = (
 )
 
 REQUEST_ALIASES = {
-    "fastener_hardware": ("fastener", "hardware", "bolt", "nut", "nail", "screw", "washer", "clamp"),
-    "hand_tool": ("tool", "wrench", "pliers", "cutter", "hammer", "screwdriver"),
-    "flexible_debris": ("flexible debris", "wire", "cable", "hose", "tape"),
-    "loose_metal": ("loose metal", "metal sheet", "metal part"),
-    "plastic_paper_debris": ("plastic", "paper", "label", "luggage tag", "paint chip"),
-    "component_container": ("component", "container", "battery", "fuel cap", "pen", "soda can"),
-    "natural_debris": ("natural debris", "rock", "wood"),
+    "fastener_hardware": (
+        "fastener hardware",
+        "fastener",
+        "hardware",
+        "bolt washer",
+        "bolt nut",
+        "washer",
+        "clamp",
+        "bolt",
+        "nut",
+        "nail",
+        "screw",
+    ),
+    "hand_tool": (
+        "hand tool",
+        "screwdriver",
+        "adjustable wrench",
+        "wrench",
+        "pliers",
+        "cutter",
+        "hammer",
+        "tool",
+    ),
+    "flexible_debris": (
+        "flexible debris",
+        "cable",
+        "hose",
+        "tape",
+        "wire",
+    ),
+    "loose_metal": (
+        "loose metal",
+        "metal sheet",
+        "metal part",
+        "metal",
+    ),
+    "plastic_paper_debris": (
+        "plastic paper debris",
+        "luggage tag",
+        "paint chip",
+        "plastic",
+        "paper",
+        "label",
+    ),
+    "component_container": (
+        "component container",
+        "soda can",
+        "fuel cap",
+        "battery",
+        "container",
+        "component",
+        "pen",
+    ),
+    "natural_debris": (
+        "natural debris",
+        "rock",
+        "wood",
+    ),
 }
 
 UNOBSERVABLE_TERMS = {
     "safe to reopen",
     "safe for landing",
     "safe for takeoff",
+    "runway safe",
+    "taxiway safe",
+    "is the runway clear",
+    "is runway clear",
+    "runway is clear",
+    "clear to land",
+    "clear for takeoff",
+    "authorize takeoff",
     "will it damage",
     "will the plane",
     "who dropped",
@@ -40,26 +99,18 @@ UNOBSERVABLE_TERMS = {
     "exact weight",
     "what material",
     "exact distance",
+    "how far",
 }
 
 DETECTION_TERMS = {
     "detect",
     "debris",
     "fod",
-    "object",
-    "objects",
     "count",
     "how many",
     "most common",
     "present",
     "visible",
-    "runway",
-    "taxiway",
-    "bolt",
-    "nut",
-    "wire",
-    "tool",
-    "rock",
     "highest confidence",
 } | {name.replace("_", " ") for name in SUPPORTED_CLASSES} | {
     alias for aliases in REQUEST_ALIASES.values() for alias in aliases
@@ -70,17 +121,37 @@ def normalize(question: str) -> str:
     return re.sub(r"\s+", " ", question.lower().strip())
 
 
+def _contains_phrase(text: str, phrase: str) -> bool:
+    pattern = r"(?<!\w)" + re.escape(phrase.lower()) + r"(?!\w)"
+    return re.search(pattern, text) is not None
+
+
 def route_question(question: str) -> str:
     normalized = normalize(question)
-    if any(term in normalized for term in UNOBSERVABLE_TERMS):
+    if any(_contains_phrase(normalized, term) or term in normalized for term in UNOBSERVABLE_TERMS):
         return "UNOBSERVABLE"
-    if any(term in normalized for term in DETECTION_TERMS):
+    if any(_contains_phrase(normalized, term) for term in DETECTION_TERMS):
+        return "DETECT"
+    if "runway" in normalized or "taxiway" in normalized or "object" in normalized:
         return "DETECT"
     return "NO_DETECTION_NEEDED"
 
 
 def _humanized(name: str) -> str:
-    return re.sub(r"(?<!^)(?=[A-Z])", " ", name).replace("_", " ").lower()
+    return name.replace("_", " ").lower()
+
+
+def _find_requested_class(normalized: str) -> str | None:
+    candidates: list[tuple[int, str, str]] = []
+    for class_name in SUPPORTED_CLASSES:
+        phrases = {_humanized(class_name), class_name.lower(), *REQUEST_ALIASES[class_name]}
+        for phrase in phrases:
+            candidates.append((len(phrase), class_name, phrase))
+    candidates.sort(key=lambda item: (-item[0], item[1]))
+    for _, class_name, phrase in candidates:
+        if _contains_phrase(normalized, phrase):
+            return class_name
+    return None
 
 
 def answer_question(question: str, detections: list[Detection] | None = None) -> AskResponse:
@@ -132,21 +203,12 @@ def answer_question(question: str, detections: list[Detection] | None = None) ->
         )
 
     counts = Counter(item.class_name for item in confident)
-    requested_class = next(
-        (
-            class_name
-            for class_name in SUPPORTED_CLASSES
-            if _humanized(class_name) in normalized
-            or class_name.lower() in normalized
-            or any(alias in normalized for alias in REQUEST_ALIASES[class_name])
-        ),
-        None,
-    )
+    requested_class = _find_requested_class(normalized)
 
     if "most common" in normalized:
         class_name, count = counts.most_common(1)[0]
         answer = f"The most common confidently detected debris class is {_humanized(class_name)} ({count})."
-    elif "how many" in normalized or "count" in normalized:
+    elif "how many" in normalized or _contains_phrase(normalized, "count"):
         if requested_class:
             requested_count = counts[requested_class]
             if requested_count == 0:
@@ -163,7 +225,9 @@ def answer_question(question: str, detections: list[Detection] | None = None) ->
             answer = f"I confidently detected {requested_count} {_humanized(requested_class)} object(s)."
         else:
             answer = f"I confidently detected {len(confident)} visible debris object(s)."
-    elif requested_class and any(term in normalized for term in ("present", "visible", "is there", "are there")):
+    elif requested_class and any(
+        _contains_phrase(normalized, term) for term in ("present", "visible", "is there", "are there")
+    ):
         if counts[requested_class] == 0:
             return AskResponse(
                 route="DETECT",
@@ -184,7 +248,10 @@ def answer_question(question: str, detections: list[Detection] | None = None) ->
         return AskResponse(
             route="DETECT",
             status="INSUFFICIENT_INFORMATION",
-            answer=answer + f" There are also {len(uncertain)} low-confidence candidate(s), so the complete count is uncertain.",
+            answer=(
+                answer
+                + f" There are also {len(uncertain)} low-confidence candidate(s), so the complete count is uncertain."
+            ),
             evidence=detections,
             guardrail_reason="Low-confidence candidates could change the answer.",
         )

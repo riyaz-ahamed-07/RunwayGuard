@@ -18,6 +18,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _optional_float(value: object) -> float | None:
+    try:
+        return float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+
+
 def main() -> None:
     args = parse_args()
     model = RTDETR(str(args.weights))
@@ -30,13 +37,26 @@ def main() -> None:
         plots=True,
         verbose=True,
     )
+    box = metrics.box
+    names = getattr(metrics, "names", None) or getattr(model, "names", {})
+    per_class = [float(value) for value in box.maps]
     result = {
-        "map50_95": float(metrics.box.map),
-        "map50": float(metrics.box.map50),
-        "map75": float(metrics.box.map75),
-        "per_class_map50_95": [float(value) for value in metrics.box.maps],
+        "map50_95": float(box.map),
+        "map50": float(box.map50),
+        "map75": float(box.map75),
+        "precision": _optional_float(getattr(box, "mp", None)),
+        "recall": _optional_float(getattr(box, "mr", None)),
+        "per_class_map50_95": per_class,
+        "per_class_names": [str(names.get(i, i)) for i in range(len(per_class))]
+        if isinstance(names, dict)
+        else [str(i) for i in range(len(per_class))],
         "fitness": float(metrics.fitness),
+        "weights": str(args.weights),
+        "data": str(args.data),
+        "imgsz": args.imgsz,
+        "split": "test",
     }
+    args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2), encoding="utf-8")
     print(json.dumps(result, indent=2))
 

@@ -70,8 +70,10 @@ Hand-written router in `app/reasoning.py` (no LangChain/CrewAI/etc.):
 
 **Concrete insufficient-information example**
 
-- **Q:** “Is the runway safe to reopen?”  
+- **Q:** “Is the runway safe to reopen?” (also: “Is the runway clear?”)  
 - **Route:** `UNOBSERVABLE` **Status:** `INSUFFICIENT_INFORMATION`  
 - **Why:** One image cannot certify operational safety; the API refuses to guess.
 
 A second pattern: class-specific “is X present?” with no confident detection → insufficient information, not “X is absent.”
+
+**Thresholds:** `/detect` may return candidates at form `confidence` (default 0.25); Part B only answers from detections ≥ 0.50.
