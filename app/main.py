@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import os
 import logging
+import os
 import time
 import uuid
 from pathlib import Path
@@ -11,16 +11,18 @@ from starlette.concurrency import run_in_threadpool
 
 from .model_service import DEFAULT_CONFIDENCE, InvalidImageError, decode_image, detect, get_model
 from .reasoning import CONFIDENT_THRESHOLD, answer_question, route_question
+from .runtime_config import ASK_EVIDENCE_CONFIDENCE, DETECT_DISPLAY_CONFIDENCE, IMGSZ
 from .schemas import AskResponse, DetectResponse
 
 
 app = FastAPI(
     title="RunwayGuard",
-    version="1.0.0",
+    version="1.1.0",
     description=(
         "Auditable RT-DETR API for visible airport foreign-object debris. "
-        f"Detection filter confidence defaults to {DEFAULT_CONFIDENCE}; "
-        f"Part B answers only use detections at or above {CONFIDENT_THRESHOLD}."
+        f"/detect display confidence default={DETECT_DISPLAY_CONFIDENCE}; "
+        f"/ask evidence threshold={ASK_EVIDENCE_CONFIDENCE} (fixed); "
+        f"Part B answer threshold={CONFIDENT_THRESHOLD}; imgsz={IMGSZ}."
     ),
 )
 logging.basicConfig(
@@ -65,12 +67,13 @@ async def read_upload(upload: UploadFile) -> bytes:
 def health() -> dict[str, object]:
     try:
         get_model()
-        model_name = Path(os.environ.get("MODEL_PATH", "weights/best.pt")).name
         return {
             "status": "ready",
-            "model": model_name,
-            "default_detect_confidence": DEFAULT_CONFIDENCE,
-            "confident_answer_threshold": CONFIDENT_THRESHOLD,
+            "model": Path(os.environ.get("MODEL_PATH", "weights/best.pt")).name,
+            "imgsz": IMGSZ,
+            "detect_display_confidence_default": DETECT_DISPLAY_CONFIDENCE,
+            "ask_evidence_confidence": ASK_EVIDENCE_CONFIDENCE,
+            "ask_answer_confidence": CONFIDENT_THRESHOLD,
         }
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
@@ -86,7 +89,7 @@ async def detect_endpoint(
         return await run_in_threadpool(detect, decoded, confidence)
     except InvalidImageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, RuntimeError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
 
 
@@ -94,8 +97,10 @@ async def detect_endpoint(
 async def ask_endpoint(
     question: str = Form(..., min_length=2, max_length=500),
     image: UploadFile | None = File(None),
-    confidence: float = Form(DEFAULT_CONFIDENCE, ge=0.01, le=0.99),
+    confidence: float | None = Form(None, ge=0.01, le=0.99),
 ) -> AskResponse:
+    """`confidence` on /ask is ignored for evidence collection (fixed server policy)."""
+    del confidence
     route = route_question(question)
     if route != "DETECT":
         return answer_question(question)
@@ -105,12 +110,14 @@ async def ask_endpoint(
             status="INSUFFICIENT_INFORMATION",
             answer="Insufficient information. This question requires an image, but none was provided.",
             guardrail_reason="Missing image.",
+            intent="MISSING_IMAGE",
+            phrasing_backend="deterministic",
         )
     try:
         decoded = decode_image(await read_upload(image))
-        result = await run_in_threadpool(detect, decoded, confidence)
-        return answer_question(question, result.detections)
+        result = await run_in_threadpool(detect, decoded, ASK_EVIDENCE_CONFIDENCE)
+        return answer_question(question, result.detections, image_size=result.image_size)
     except InvalidImageError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, RuntimeError) as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc

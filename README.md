@@ -2,7 +2,7 @@
 
 Constrained **RT-DETR** object detection + FastAPI reasoning for **visible airport foreign-object debris (FOD)**.
 
-Built for RAP Pre-Hackathon Screening (Round 1): Part A detection API, Part B hand-written reasoning layer, reproducible training, honest evaluation.
+Built for RAP Pre-Hackathon Screening (Round 1): Part A detection API, Part B structured intent + optional direct LLM phrasing (no agent frameworks), reproducible training, honest evaluation.
 
 | Endpoint | Role |
 |----------|------|
@@ -54,9 +54,9 @@ FAA FOD context: <https://www.faa.gov/airports/airport_safety/fod>
 
 **Source:** FOD-A v2.1 Pascal VOC — 33,793 images (300×300), 31 source labels, XML boxes.
 
-**Official split was rejected.** Audit found duplicate IDs, train/test overlap, and perceptual-hash near-duplicates crossing the supplied split (~1,403 identical label-compatible groups). Using that split would inflate mAP.
+**Official split was rejected.** Audit of publisher ImageSets found duplicate list entries, IDs in both trainval and test, and **1,403 identical dHash groups** that appeared on both sides of the official split (proxy near-duplicate risk; not all are proven label-compatible video twins, and plain backgrounds can collide). Keeping that split would have risked inflated self-reported mAP.
 
-**Replacement:** deterministic **grouped split** (`scripts/create_grouped_split.py`, seed **42**):
+**Replacement:** deterministic **grouped split** (`scripts/create_grouped_split.py`, seed **42**) using dHash + adjacent IDs + label/environment tags as **heuristic** groups—not certified video identities:
 
 | Split | Images |
 |-------|--------|
@@ -64,9 +64,9 @@ FAA FOD context: <https://www.faa.gov/airports/airport_safety/fod>
 | val | 4,808 |
 | test | 4,882 |
 
-Manifests and audit summary: `data_splits/`.
+Manifests are pairwise ID-disjoint (`data_splits/`). Zero matching hashes under the rule does **not** prove all leakage is eliminated.
 
-**Taxonomy:** 31 source labels map 1:1 into seven operational classes in `config/taxonomy.json` so rare capture groups are not forced into undefensible per-class AP, while every annotation is retained:
+**Taxonomy:** 31 source labels map **many-to-one** into seven **operational grouping** classes in `config/taxonomy.json` (not material facts; e.g. `paint chip` ≠ proven plastic composition). Every source label is retained exactly once:
 
 `fastener_hardware`, `hand_tool`, `flexible_debris`, `loose_metal`, `plastic_paper_debris`, `component_container`, `natural_debris`
 
@@ -80,7 +80,7 @@ Annotation QC figures: `docs/figures/annotation_audit/`.
 |------------|--------|
 | RT-DETR fine-tune (Ultralytics) | Yes — `train.py` |
 | ≥1 non-COCO class | Yes — all 7 |
-| No LangChain / LangGraph / CrewAI / AutoGen | Yes — hand-written `app/reasoning.py` |
+| No LangChain / LangGraph / CrewAI / AutoGen | Yes — deterministic intent/policy in `app/reasoning.py`; optional OpenAI HTTP phrasing only |
 | No AutoML / no-code training | Yes |
 | Reproducible prep + train + eval | Yes — this README + notebook |
 | Docker | Yes — `Dockerfile` |
@@ -99,9 +99,11 @@ python scripts/convert_voc_to_yolo.py \
   --dataset-root /path/to/VOC2007 \
   --splits-dir data_splits \
   --taxonomy config/taxonomy.json \
-  --output-dir prepared_data
+  --output-dir prepared_data \
+  --clean-output
 ```
 
+Use `--clean-output` whenever regenerating so stale files cannot contaminate Ultralytics directory loaders.
 `prepared_data/` is local-only (gitignored). Colab rebuilds it from FOD-A + committed manifests.
 
 ---
@@ -161,15 +163,16 @@ Report mAP50, mAP50-95, precision/recall, per-class AP / confusion behavior, and
 
 ## Model weights
 
-Place the trained checkpoint at:
+`MODEL_PATH` must be a **local filesystem path** to a `.pt` file (not a URL). Download first, then point:
 
-```text
-weights/best.pt
+```bash
+# Example after you publish a Drive/Release link:
+# curl -L -o weights/best.pt "YOUR_DIRECT_DOWNLOAD_URL"
+# sha256sum weights/best.pt   # record checksum in MEMO.md
+export MODEL_PATH=weights/best.pt   # optional; default is weights/best.pt
 ```
 
-Or set `MODEL_PATH` to an absolute path / download location.
-
-**Reviewer download:** *[add public Drive / GitHub Release / Hugging Face URL here after training]*
+**Reviewer download:** *[paste working public URL + sha256 after training]*
 
 Do not commit multi‑hundred‑MB `.pt` files to git.
 
@@ -241,20 +244,12 @@ curl -s -X POST http://localhost:8000/ask \
 }
 ```
 
-### Part B policy (hand-written)
+### Part B policy
 
-Implemented in `app/reasoning.py` — **no** agent frameworks.
-
-1. **Intent routing:** `DETECT` | `NO_DETECTION_NEEDED` | `UNOBSERVABLE`
-2. **Structured reasoning:** counts / presence / most-common over detections
-3. **Guardrail:** low confidence, missing image, absence claims, or unobservable questions → `INSUFFICIENT_INFORMATION` (never “runway is clear”)
-
-**Two confidence thresholds (intentional):**
-
-| Knob | Default | Used for |
-|------|---------|----------|
-| Form field `confidence` on `/detect` and `/ask` | `0.25` | Ultralytics NMS / score filter (what boxes are returned) |
-| `CONFIDENT_THRESHOLD` in reasoning | `0.50` | Whether Part B is allowed to answer (below this → insufficient information) |
+1. **Deterministic intent + arithmetic** in `app/reasoning.py` (counts, ties, subtype abstention, safety refuse).
+2. **Optional LLM phrasing** via direct OpenAI HTTP (`app/llm_phrase.py`) — only rewords an already-validated conclusion; never invents detections. Requires `OPENAI_API_KEY`. Disable with `RUNWAYGUARD_LLM=0`. No LangChain/CrewAI/etc.
+3. **`/ask` evidence confidence is fixed at 0.25** on the server (callers cannot hide mid-score boxes). Answers use detections ≥ **0.50**. `/detect` still accepts a display `confidence` filter separately.
+4. Train/eval/serve share **imgsz=480** (`app/runtime_config.py`).
 
 ```bash
 pytest -q

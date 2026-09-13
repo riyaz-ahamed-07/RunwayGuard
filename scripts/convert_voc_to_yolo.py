@@ -19,6 +19,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional JSON mapping from final class names to lists of source Pascal VOC labels.",
     )
     parser.add_argument("--copy-images", action="store_true", help="Copy images instead of creating hard links.")
+    parser.add_argument(
+        "--clean-output",
+        action="store_true",
+        help="Delete existing images/ and labels/ under --output-dir before converting.",
+    )
     return parser.parse_args()
 
 
@@ -37,7 +42,7 @@ def discover_classes(annotation_dir: Path) -> list[str]:
 
 def link_or_copy(source: Path, destination: Path, copy_images: bool) -> None:
     if destination.exists():
-        return
+        destination.unlink()
     if copy_images:
         shutil.copy2(source, destination)
         return
@@ -45,6 +50,19 @@ def link_or_copy(source: Path, destination: Path, copy_images: bool) -> None:
         destination.hardlink_to(source)
     except OSError:
         shutil.copy2(source, destination)
+
+
+def assert_split_matches_manifest(output_dir: Path, splits_dir: Path) -> None:
+    for split_name in ("train", "val", "test"):
+        ids = set(read_ids(splits_dir / f"{split_name}.txt"))
+        images = {path.stem for path in (output_dir / "images" / split_name).glob("*.jpg")}
+        labels = {path.stem for path in (output_dir / "labels" / split_name).glob("*.txt")}
+        if images != ids or labels != ids:
+            raise RuntimeError(
+                f"Split {split_name} is out of sync with the manifest after conversion. "
+                f"manifest={len(ids)} images={len(images)} labels={len(labels)}. "
+                "Re-run with --clean-output."
+            )
 
 
 def convert_annotation(
@@ -112,6 +130,12 @@ def main() -> None:
     class_to_id = {name: index for index, name in enumerate(classes)}
     split_counts: dict[str, Counter[str]] = {}
 
+    if args.clean_output and output_dir.exists():
+        for sub in ("images", "labels"):
+            target = output_dir / sub
+            if target.exists():
+                shutil.rmtree(target)
+
     for split_name in ("train", "val", "test"):
         ids = read_ids(splits_dir / f"{split_name}.txt")
         output_images = output_dir / "images" / split_name
@@ -152,6 +176,7 @@ def main() -> None:
         "split_class_counts": {name: dict(counts) for name, counts in split_counts.items()},
     }
     (output_dir / "conversion_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
+    assert_split_matches_manifest(output_dir, splits_dir)
     print(f"Converted {sum(sum(c.values()) for c in split_counts.values()):,} annotations.")
     print(f"YOLO dataset: {output_dir}")
     print(f"Configuration: {output_dir / 'data.yaml'}")
